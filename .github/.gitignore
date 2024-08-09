@@ -10,3 +10,6 @@ venv-go-rxr/
 venv-go-rxr-paper/
 **/*.h5
 .idea/
+.git/
+GO_RXR.egg-info/
+UNKNOWN.eff-info

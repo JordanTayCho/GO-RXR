@@ -1808,11 +1808,8 @@ def ReadDataHDF5(fname):
 
     # Sorts data in appropriate order
     data = np.array(data)
-
     sort_idx = np.argsort(data[:,0].astype(int))
     data = data[sort_idx]
-
-
 
     data_dict = hdf5ToDict(data_dict)
     sim_dict = hdf5ToDict(sim_dict)
@@ -1861,8 +1858,6 @@ def LoadDataHDF5(fname):
     data = np.array(data)
     sort_idx = np.argsort(data[:,0].astype(int))
     data = data[sort_idx]
-
-
 
     data_dict = hdf5ToDict(data_dict)
     sim_dict = hdf5ToDict(sim_dict)

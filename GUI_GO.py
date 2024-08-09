@@ -80,6 +80,19 @@ Instructions to create executable using pytinstaller:
    to initialize because the all the libraries and files need to be unpacked before the software can be run.
 """
 
+
+"""
+Library: GUI_GO
+Version: 1.02
+Author: Jordan Cho
+Institution: University of Saskatchewan
+Last Updated: Aug 9, 2024
+Python: version 3.7
+
+Update: Parts of GO-RXR have been changed to have 3-Dimensional components. Specifically to consider form factors and energy shifts in directions x, y and z rather than
+        assumming that all x, y, and z components are the same. 
+
+"""
 import ast
 from scipy import interpolate
 from PyQt5.QtWidgets import *
@@ -91,7 +104,7 @@ import numpy as np
 import time
 import sys
 import UTILS.material_structure as ms
-from UTILS.material_model import change_ff, retrieve_ff
+from UTILS.material_model import change_ff, retrieve_ff, ffm, ff
 import os
 import pyqtgraph as pg
 import UTILS.data_structure as ds
@@ -115,7 +128,7 @@ stop = False
 global x_vars
 x_vars = []
 
-def change_internal_ff(element, ff_dict, my_data):
+def change_internal_ff(element, ff_dict, my_data): 
     """
     Purpose: Change the atomic form factor data for the global atomic form factor dictionary
     :param element: Element symbol
@@ -157,13 +170,13 @@ def stringcheck(string):
     return correctFormat
 
 
-class compoundInput(QDialog):
+class compoundInput(QDialog):  
     """
     Purpose: Creates a widget when user wants to add another layer. This widget allows the user to select the chemical
              formula, thickness, density (g/cm^3), roughness, and linked roughness for the layer.
     """
 
-    def __init__(self):
+    def __init__(self): 
         super().__init__()
         self.val = []  # class value used to store layer properties
         pagelayout = QVBoxLayout()  # page layout
@@ -227,7 +240,7 @@ class compoundInput(QDialog):
         pagelayout.addWidget(self.errorMessage)
         self.setLayout(pagelayout)
 
-    def formulaDone(self):
+    def formulaDone(self): 
         """
         Purpose: searches database for material density
         :return: density (g/cm^3)
@@ -247,7 +260,7 @@ class compoundInput(QDialog):
                     else:  # material not found in the database
                         self.density.clear()  # reset the density in the widget
 
-    def linkedroughnessbox(self):
+    def linkedroughnessbox(self): 
         """
         Purpose: Hide or make visible the linked roughness lineEdit widget
         """
@@ -257,7 +270,7 @@ class compoundInput(QDialog):
         else:
             self.linkedroughness.setHidden(True)
 
-    def inputComplete(self):
+    def inputComplete(self): 
         """
         Purpose: Checks to make sure parameters are in correct format before sending back
                  to main widget to add to current sample
@@ -343,7 +356,7 @@ class compoundInput(QDialog):
             self.accept()  # close the widget
 
 
-class variationWidget(QDialog):
+class variationWidget(QDialog): 
     """
     Purpose: This widget provides the user a workspace to handle elemental variations.It allows for the user to include
              the different oxidation states of a material. The only properites that the user may change is the number
@@ -391,7 +404,7 @@ class variationWidget(QDialog):
         self.elelayout.addWidget(addButton)
         self.elelayout.addWidget(deleteButton)
 
-        # setting the headers for the element variation table
+        # setting the headers for the element variation table  HEADER NAMES SHOULDN"T NEED TO BE CHANGED
         self.mainWidget.varTable.setRowCount(2)
         self.mainWidget.varTable.setColumnCount(3)
         self.mainWidget.varTable.setHorizontalHeaderLabels(
@@ -410,7 +423,7 @@ class variationWidget(QDialog):
         self.setStyleSheet('background-color: lightgrey;')
         self.setLayout(pagelayout)
 
-    def changeElements(self):
+    def changeElements(self): 
         """
         Purpose: changes the elements based on current layer
         """
@@ -450,7 +463,6 @@ class variationWidget(QDialog):
                 self.mainWidget.varData[element][lay][0] = np.append(self.mainWidget.varData[element][lay][0], '')  # variation id
                 self.mainWidget.varData[element][lay][1] = np.append(self.mainWidget.varData[element][lay][1], '')  # ratio
                 self.mainWidget.varData[element][lay][2] = np.append(self.mainWidget.varData[element][lay][2], '')  # form factor
-
                 self.mainWidget.magData[element][lay][0] = np.append(self.mainWidget.magData[element][lay][0], '')  # variation id
                 self.mainWidget.magData[element][lay][1] = np.append(self.mainWidget.magData[element][lay][1], '')  # ratio
                 self.mainWidget.magData[element][lay][2] = np.append(self.mainWidget.magData[element][lay][2], '')  # form factor
@@ -458,7 +470,6 @@ class variationWidget(QDialog):
                 self.mainWidget.varData[element][lay][0].append('')  # add another element to name list
                 self.mainWidget.varData[element][lay][1].append('')  # add another element to name list
                 self.mainWidget.varData[element][lay][2].append('')  # add another element to name list
-
                 self.mainWidget.magData[element][lay][0].append('')  # make appropriate changes to magnetic data
                 self.mainWidget.magData[element][lay][1].append('')
                 self.mainWidget.magData[element][lay][2].append('')
@@ -466,7 +477,7 @@ class variationWidget(QDialog):
         # row = self.mainWidget.varTable.rowCount()
         self.mainWidget.varTable.setRowCount(row + 1)  # reset the number of rows in the element variation table
 
-    def deleteVarEle(self):
+    def deleteVarEle(self): 
         """
         Purpose: Remove the last element variation
         """
@@ -505,13 +516,13 @@ class variationWidget(QDialog):
             self.mainWidget.varTable.setRowCount(row - 1)  # set the variation table with the correct number of rows
 
 
-class ReadOnlyDelegate(QStyledItemDelegate):
+class ReadOnlyDelegate(QStyledItemDelegate): 
     # This class is used to set an item delegate to read only
     def createEditor(self, parent, option, index):
         return
 
 
-class magneticWidget(QDialog):
+class magneticWidget(QDialog): 
     """
     Purpose: This widget is used to set the magnetic info based on the user's input
     """
@@ -592,13 +603,12 @@ class magneticWidget(QDialog):
                 self.mainWidget.magDirection[i] = 'z'
 
 
-
 class sampleWidget(QWidget):
     """
     Purpose: This widget contains all the information about the sample and all it's properties.
     """
     # sample widget that contains all the information about the sample parameters
-    def __init__(self, parent,sample):
+    def __init__(self, parent,sample): 
         super(sampleWidget, self).__init__()
 
         # ------------------------------- parameter initialization -------------------------------------#
@@ -648,9 +658,9 @@ class sampleWidget(QWidget):
         self.step_size = QLineEdit()
         self.step_size.textChanged.connect(self.changeStepSize)
         self.step_size.setText(self._step_size)
-        self.step_size.setMaximumWidth(100)
+        self.step_size.setMaximumWidth(94)
         step_size_label = QLabel('Step Size (Å):')
-        step_size_label.setMaximumWidth(65)
+        step_size_label.setMaximumWidth(81)
         step_size_layout = QHBoxLayout()
         step_size_layout.addWidget(step_size_label)
         step_size_layout.addWidget(self.step_size)
@@ -660,9 +670,9 @@ class sampleWidget(QWidget):
         self.precisionWidget = QLineEdit()
         self.precisionWidget.textChanged.connect(self.changePrecision)
         self.precisionWidget.setText(self._precision)
-        self.precisionWidget.setMaximumWidth(100)
+        self.precisionWidget.setMaximumWidth(94)
         precision_label = QLabel('Precision (qz):')
-        precision_label.setMaximumWidth(65)
+        precision_label.setMaximumWidth(82)
         precision_layout = QHBoxLayout()
         precision_layout.addWidget(precision_label)
         precision_layout.addWidget(self.precisionWidget)
@@ -672,13 +682,12 @@ class sampleWidget(QWidget):
         self.Eprecision = QLineEdit()
         self.Eprecision.textChanged.connect(self.changeEPrecision)
         self.Eprecision.setText(self._Eprecision)
-        self.Eprecision.setMaximumWidth(100)
+        self.Eprecision.setMaximumWidth(94)
         Eprecision_label = QLabel('Precision (E):')
-        Eprecision_label.setMaximumWidth(65)
+        Eprecision_label.setMaximumWidth(81)
         Eprecision_layout = QHBoxLayout()
         Eprecision_layout.addWidget(Eprecision_label)
         Eprecision_layout.addWidget(self.Eprecision)
-
 
         pagelayout = QHBoxLayout()  # page layout
 
@@ -740,7 +749,7 @@ class sampleWidget(QWidget):
         self.structTable.horizontalHeader().setSectionResizeMode(1)  # makes headers fit table (consider removing this)
         self.structTable.horizontalHeader().setFont(afont)
         self._setStructFromSample(sample)  # setting the structural table
-
+       
         # setTable
         self.setTable()
 
@@ -802,6 +811,7 @@ class sampleWidget(QWidget):
         selectlayout.addWidget(self.magButton)
 
         # Form Factor Workspace
+
         self.shiftButton = QPushButton('Form Factor')  # energy shift button
         self.shiftButton.setStyleSheet('background: lightGrey')
         self.shiftButton.clicked.connect(self._energy_shift)
@@ -837,7 +847,6 @@ class sampleWidget(QWidget):
 
         mylayout.addWidget(self.densityWidget)
 
-
         # change parameters when clicked
         self.structTable.itemChanged.connect(self.changeStructValues)
         self.varTable.itemChanged.connect(self.changeVarValues)
@@ -847,7 +856,7 @@ class sampleWidget(QWidget):
         self.structTable.setItemDelegateForColumn(0, delegate)
         self.setLayout(mylayout)
 
-    def check_element_number(self):
+    def check_element_number(self): 
         """
         Purpose: Checks to make sure that there is a sample defined and the number of elements in each layer is the same
         :return: booleans not_empty and equal_elements where True states there are no defined layers and there
@@ -867,7 +876,7 @@ class sampleWidget(QWidget):
 
         return not_empty, equal_elements
 
-    def _energy_shift(self):
+    def _energy_shift(self): 
         """
         Purpose: Change to energy shift info
         :return:
@@ -883,14 +892,28 @@ class sampleWidget(QWidget):
         """
         Purpose: Reset energy table
         """
-
         self.energyShiftTable.blockSignals(True)  # block energy shift signals
         keys = list(self.eShift.keys())  # retrieve energy shift keys
-
+        keys_3D = list() #Initialize keys list for 3D
+        num_m = 0       #Number of magnetic elements
+        num_nm = 0      #Number of non-magnetic elements
+        for k in keys:   #Count how many magnetic/non-magnetic elements
+            if k[:3] == "ffm":
+                num_m = num_m + 1
+            else:
+                num_nm = num_nm + 1
         # set the energy shift form factor names and their values
-        self.energyShiftTable.setColumnCount(len(keys))
+        self.energyShiftTable.setColumnCount(3*num_nm + num_m)  #For each element set a x, y and z dir plus num_m for magnetic elements 
+        for  k in range(len(keys)):
+            if keys[k][:3] == "ff-":    #non-magnetic form factor
+                keys_3D.insert(k, keys[k] +"_z")
+                keys_3D.insert(k, keys[k] +"_y")
+                keys_3D.insert(k, keys[k] +"_x")
+            else:   #magnetic form factor
+                keys_3D.insert(k, keys[k])
+        keys_3D = sorted(keys_3D)   #Sort so that visually the elements are grouped together
+        self.energyShiftTable.setHorizontalHeaderLabels(keys_3D)
 
-        self.energyShiftTable.setHorizontalHeaderLabels(keys)
         if len(self.orbitals) == 0:
             self.energyShiftTable.setRowCount(2)
             self.energyShiftTable.setVerticalHeaderLabels(['Energy Shift (eV)', 'Scale'])
@@ -898,15 +921,16 @@ class sampleWidget(QWidget):
             self.energyShiftTable.setRowCount(7)
             self.energyShiftTable.setVerticalHeaderLabels(
                 ['Energy Shift (eV)', 'Scale', 'nd','dExy', 'dExzyz', 'dEx2y2', 'dEzz'])
-
-            for column, key in enumerate(keys):  # setting energy shift
+            print(self.orbitals)
+            for column, key in enumerate(keys_3D):  # setting energy shift
                 my_key = key.split('-')[1]
-                if my_key in list(self.orbitals.keys()):
+                test_key = my_key[:-2]
+                if test_key in list(self.orbitals.keys()):
                     item0 = QTableWidgetItem(str(self.parent.nd))  # nd
-                    item1 = QTableWidgetItem(str(self.orbitals[my_key][0]))  # dExy
-                    item2 = QTableWidgetItem(str(self.orbitals[my_key][1]))  # dExzyz
-                    item3 = QTableWidgetItem(str(self.orbitals[my_key][2]))  # dEx2y2
-                    item4 = QTableWidgetItem(str(self.orbitals[my_key][3]))  # dEzz
+                    item1 = QTableWidgetItem(str(self.orbitals[test_key][0]))  # dExy
+                    item2 = QTableWidgetItem(str(self.orbitals[test_key][1]))  # dExzyz
+                    item3 = QTableWidgetItem(str(self.orbitals[test_key][2]))  # dEx2y2
+                    item4 = QTableWidgetItem(str(self.orbitals[test_key][3]))  # dEzz
 
                     self.energyShiftTable.setItem(2, column, item0)  # nd
                     self.energyShiftTable.setItem(3, column, item1)  # dExy
@@ -926,16 +950,48 @@ class sampleWidget(QWidget):
                     self.energyShiftTable.setItem(4, column, item2)  # dExzyz
                     self.energyShiftTable.setItem(5, column, item3)  # dEx2y2
                     self.energyShiftTable.setItem(6, column, item4)  # dEzz
+        for column, key in enumerate(keys_3D):  # setting energy shift  
+            if key[:3] == "ff-":
+                new_key_1 = key[-1]
+                new_key = key[:-2]
+                if new_key_1 == "x":#Set columns against a direction x
+                    item = QTableWidgetItem(str(self.eShift[new_key][0]))
+                    self.energyShiftTable.setItem(0, column, item) 
+                elif new_key_1 == "y":#Set columns against a direction y
+                    item = QTableWidgetItem(str(self.eShift[new_key][1]))
+                    self.energyShiftTable.setItem(0, column, item)
+                else:#Set columns against a direction z
+                    item = QTableWidgetItem(str(self.eShift[new_key][2]))
+                    self.energyShiftTable.setItem(0, column, item)
+            else:  # Magnetic Form Factor Energy Shift
+                item = QTableWidgetItem(str(self.eShift[key]))
+                self.energyShiftTable.setItem(0, column, item)
 
+        for column, key in enumerate(keys):  # setting energy shift for magnetic form factors
+            if keys[:3] == "ffm":
+                item = QTableWidgetItem(str(self.eShift[key]))
+                self.energyShiftTable.setItem(0, column, item)
 
+        for column, key in enumerate(keys_3D):  # setting scaling factor
+            if key[:3] == "ff-":
+                new_key_1 = key[-1]  #x, y, z designation of key
+                new_key = key[:-2]   #key without the post-fix 
+                if new_key_1 == "x":#Set scaling factor for x dir
+                    item = QTableWidgetItem(str(self.ffScale[new_key][0]))
+                    self.energyShiftTable.setItem(1, column, item)
+                elif new_key_1 == "y":#Set scaling factor for y dir
+                    item = QTableWidgetItem(str(self.ffScale[new_key][1]))
+                    self.energyShiftTable.setItem(1, column, item)
+                else:  #Set scaling factor for z dir
+                    item = QTableWidgetItem(str(self.ffScale[new_key][2]))
+                    self.energyShiftTable.setItem(1, column, item)
+            else:
+                item = QTableWidgetItem(str(self.ffScale[key]))
+                self.energyShiftTable.setItem(1, column, item)
         for column, key in enumerate(keys):  # setting energy shift
-            item = QTableWidgetItem(str(self.eShift[key]))
-            self.energyShiftTable.setItem(0, column, item)
-
-        for column, key in enumerate(keys):  # setting scaling factor
-            item = QTableWidgetItem(str(self.ffScale[key]))
-            self.energyShiftTable.setItem(1, column, item)
-
+            if keys[:3] == "ffm":
+                item = QTableWidgetItem(str(self.ffScale[key]))
+                self.energyShiftTable.setItem(1, column, item)
         # set the parameter fit colors
         copy_of_list = copy.deepcopy(self.parameterFit)
 
@@ -980,7 +1036,6 @@ class sampleWidget(QWidget):
                     else:
                         self.energyShiftTable.item(0, column).setBackground(QtGui.QColor(255, 255, 255))
 
-
         for i,col in enumerate(my_fits):  # cells to color
             self.energyShiftTable.item(my_rows[i], col).setBackground(QtGui.QColor(0, 255, 0))
 
@@ -1023,11 +1078,32 @@ class sampleWidget(QWidget):
         row = self.energyShiftTable.currentRow()  # retrieves current row
         key = self.energyShiftTable.horizontalHeaderItem(column).text()  # retrieves the key
         value = self.energyShiftTable.item(row, column).text()  # retrieves the value
+
         my_keys = key.split('-')[1]
+        new_key_1 = key[-1]
+        new_key = key[:-2]
         if row == 0:  # energy shift case
-            self.eShift[key] = float(value)  # change the value in memory
+            if key[:3] == "ff-":
+                if new_key_1 == "x":
+                    self.eShift[new_key][0] = float(value)  # change the x value in memory
+                elif new_key_1 =="y":
+                    self.eShift[new_key][1] = float(value)  # change the y value in memory
+                else:
+                    self.eShift[new_key][2] = float(value)  # change the z value in memory
+            else:
+                self.eShift[key] = float(value)
+
         elif row == 1: # ff scaling
-            self.ffScale[key] = float(value)  # change the value in memory
+            if key[:3] == "ff-":
+                if new_key_1 == "x":
+                    self.ffScale[new_key][0] = float(value)  # change the x value in memory
+                elif new_key_1 =="y":
+                    self.ffScale[new_key][1] = float(value)  # change the y value in memory
+                else:
+                    self.ffScale[new_keys][2] = float(value)  # change the z value in memory
+            else:
+                self.ffScale[key] = float(value)  # change the value in memory
+
         elif row == 2: # nd
             if str(value).isdigit() and float(value) > 0:
                 self.parent.nd = int(value)  # change the value in memory
@@ -1037,36 +1113,63 @@ class sampleWidget(QWidget):
                 messageBox.setText('nd must be a positive integer')
                 messageBox.exec()
         elif row == 3:  # dExy
-            if my_keys in list(self.orbitals.keys()):
-                self.orbitals[my_keys][0] = value
+            messageBox = QMessageBox()
+            messageBox.setWindowTitle("Warning")
+            messageBox.setText('For all three components set dExy to the same')
+            messageBox.exec()
+            if new_key in list(self.orbitals.keys()):
+                self.orbitals[new_key][0] = value
         elif row == 4:  # dExzyz
+            messageBox = QMessageBox()
+            messageBox.setWindowTitle("Warning")
+            messageBox.setText('For all three components set dExzyz to the same')
+            messageBox.exec()
             if my_keys in list(self.orbitals.keys()):
-                self.orbitals[my_keys][1] = value
+                self.orbitals[ new_key][1] = value
         elif row == 5:  # dEx2y2
+            messageBox = QMessageBox()
+            messageBox.setWindowTitle("Warning")
+            messageBox.setText('For all three components set dEx2y2 to the same')
+            messageBox.exec()
             if my_keys in list(self.orbitals.keys()):
-                self.orbitals[my_keys][2] = value
+                self.orbitals[ new_key][2] = value
         elif row == 6:  # dEzz
+            messageBox = QMessageBox()
+            messageBox.setWindowTitle("Warning")
+            messageBox.setText('For all three components set dEzz to the same')
+            messageBox.exec()
             if my_keys in list(self.orbitals.keys()):
-                self.orbitals[my_keys][3] = value
-
-
+                self.orbitals[ new_key][3] = value
         if row == 0:
             # set energy shift for crystal and magnetic form factors
             if key[:3] == 'ff-':
-                sf = key[3:]
-                self.sample.eShift[sf] = float(value)
-            elif key[:3] == 'ffm':
+                sf = key[3:-2]
+                self.sample.eShift[sf] = [0, 0, 0] #initialize for 3-Dim
+                if key[-1] == "x":  #xdir
+                    self.sample.eShift[sf][0] = float(value)
+                elif key[-1] == "y":    #ydir
+                    self.sample.eShift[sf][1] = float(value)
+                else:   #zdir
+                    self.sample.eShift[sf][2] = float(value)
+            elif key[:3] == 'ffm': #1-Dim
                 sf = key[4:]
                 self.sample.mag_eShift[sf] = float(value)
 
         elif row == 1:  # check if atomic form factor identifier has changed
             # make changes to the sample
             if key[:3] == 'ff-':
-                sf = key[3:]
-                self.sample.ff_scale[sf] = float(value)
-            elif key[:3] == 'ffm':
+                sf = key[3:-2]
+                self.sample.ff_scale[sf] = [0, 0, 0] #Initialize for 3-Dim
+                if key[-1] == "x": #xdir
+                    self.sample.ff_scale[sf][0] = float(value)
+                elif key[-1] == "y": #ydir
+                    self.sample.ff_scale[sf][1] = float(value)
+                else:   #zdir
+                    self.sample.ff_scale[sf][2] = float(value)
+            elif key[:3] == 'ffm': #1-Dim
                 sf = key[4:]
                 self.sample.ffm_scale[sf] = float(value)
+
 
         # update changes to the fitting parameter values and their boundaries
         # ff scaling is not included in fitting
@@ -1083,7 +1186,7 @@ class sampleWidget(QWidget):
                     self.currentVal[idx] = [value, [lower, upper]]
         self.setTableEShift()
 
-    def changeMagValues(self):
+    def changeMagValues(self): 
         """
         Purpose: Change the magnetization values when a change signaled
         """
@@ -1098,7 +1201,6 @@ class sampleWidget(QWidget):
             name = self.magTable.verticalHeaderItem(row).text()  # retrieves name
             element = ''  # pre-initializes element
             idx = 0  # pre-initializes index
-
             # Determines if the current magnetic element already exists and to what element it belongs to
             for i in range(len(self.structTableInfo[layer])):
                 ele = self.structTableInfo[layer][i][0]
@@ -1116,7 +1218,7 @@ class sampleWidget(QWidget):
                     del self.eShift[prev_dict_name]
                     del self.ffScale[prev_dict_name]
 
-                if value != '':  # sets eShift to 0
+                if value != '':  # sets eShift to 0 3-Dim
                     dict_name = 'ffm-' + value
                     self.eShift[dict_name] = 0  # pre-intialized value
                     self.ffScale[dict_name] = 1  # pre-intialized value
@@ -1142,7 +1244,7 @@ class sampleWidget(QWidget):
                     messageBox.setWindowTitle("Warning")
                     messageBox.setText('GO-RXR will change all magnetic density negative values to positive values.')
                     messageBox.exec()
-                    self.varData[element][layer][column][row] = 0
+                    self.varData[element][layer][column][row] = 0.0
 
             self.magData[element][layer][column + 1][idx] = value
 
@@ -1166,7 +1268,7 @@ class sampleWidget(QWidget):
 
         self.magTable.verticalHeader().setSectionResizeMode(1)
 
-    def changeVarValues(self):
+    def changeVarValues(self): 
         """
         Purpose: change the variation parameters when signaled
         """
@@ -1198,7 +1300,6 @@ class sampleWidget(QWidget):
                 if value != '':
                     my_num = my_num + 1
                     empty = False
-
                 # varData needs to be intialized for entered identifier
                 if my_num == 1:
                     for lay in range(len(self.varData[element])):
@@ -1207,7 +1308,6 @@ class sampleWidget(QWidget):
                             self.magData[element][lay] = [[element], [''], ['']]
                         else:
                             self.magData[element][lay] = [['' for i in range(c)],['' for i in range(c)],['' for i in range(c)]]
-
 
                 # previous value and current value not the same
                 if prev_value != value or prev_value == '':
@@ -1220,7 +1320,7 @@ class sampleWidget(QWidget):
                                 inLayer = True
 
                         if inLayer:
-                            self.varData[element][i][0][row] = value
+                            self.varData[element][i][0][row] = value  #Name
                             self.magData[element][i][0][row] = value
 
                             # preset all ratio values as a zero if not already initialized
@@ -1247,7 +1347,6 @@ class sampleWidget(QWidget):
                         # reset all magnetic data related to the element variation
                         self.magData[element][lay] = [[element], [''], ['']]
 
-
                     # delete the form factor in eShift
                     for ff_key in my_ff:
                         if ff_key != '':
@@ -1263,8 +1362,6 @@ class sampleWidget(QWidget):
                             if ffm_name in list(self.eShift.keys()):
                                 del self.eShift[ffm_name]
                                 del self.ffScale[ffm_name]
-
-
 
             if column == 1:  # ratio
                 # only sets the value if varData initialized
@@ -1292,8 +1389,8 @@ class sampleWidget(QWidget):
                     # does not include '' as a possible eShift value
                     if value != '':
                         dict_name = 'ff-' + value
-                        self.eShift[dict_name] = 0
-                        self.ffScale[dict_name] = 1
+                        self.eShift[dict_name] = [0, 0, 0]
+                        self.ffScale[dict_name] = [1, 1, 1]
 
                     for idx, my_layer in enumerate(self.varData[element]):
 
@@ -1347,8 +1444,8 @@ class sampleWidget(QWidget):
                     del self.eShift[prev_dict_name]  # delete old ID info
                     del self.ffScale[prev_dict_name]  # delete old ID info
                     dict_name = 'ff-' + value
-                    self.eShift[dict_name] = 0
-                    self.ffScale[dict_name] = 1
+                    self.eShift[dict_name] = [0, 0, 0]
+                    self.ffScale[dict_name] = [1, 1, 1]
                     for i in range(len(self.structTableInfo)):
                         for j in range(len(self.structTableInfo[i])):
                             if self.structTableInfo[i][j][0] == name:
@@ -1442,7 +1539,7 @@ class sampleWidget(QWidget):
                         self.parameterFit.remove(fit)
                         self.structTable.item(row, column).setBackground(QtGui.QColor(255, 255, 255))
 
-    def eventFilter(self, source, event):
+    def eventFilter(self, source, event): 
         """
         Purpose: Determine which handler to use when user right clicks on tables
         :param source: the source of the signal
@@ -1461,7 +1558,7 @@ class sampleWidget(QWidget):
                     self.eShift_handler()  # fit energy shift parameters
         return False
 
-    def eShift_handler(self):
+    def eShift_handler(self): 
         """
         Purpose: Handler used in setting fitting state of energy shift
         """
@@ -1591,7 +1688,7 @@ class sampleWidget(QWidget):
         self.setTableMag()  # reset magnetic table
         self.setTableVar()  # reset element variation table
 
-    def mag_handler(self):
+    def mag_handler(self): 
         """
         Purpose: Handler used in setting fitting state of magnetic parameters
         """
@@ -1709,7 +1806,7 @@ class sampleWidget(QWidget):
 
         self.setTableMag()
 
-    def var_handler(self):
+    def var_handler(self): 
         """
         Purpose: Handler used in setting fitting state of element variation
         """
@@ -1826,7 +1923,7 @@ class sampleWidget(QWidget):
                                 self.currentVal.pop(idx)
         self.setTableVar()
 
-    def structure_handler(self):
+    def structure_handler(self): 
         """
         Purpose: Handler used in setting fitting state of energy shift
         """
@@ -1913,7 +2010,6 @@ class sampleWidget(QWidget):
                             self.parameterFit.remove(fit)
                             self.currentVal.pop(idx)
 
-
                     elif n == 5:  # compound mode
                         layer = fit[0]
                         ele = fit[4]
@@ -1930,10 +2026,8 @@ class sampleWidget(QWidget):
                         elif param == 'LINKED ROUGHNESS':
                             param_num = 4
 
-
                         if layer == my_layer and column == param_num and my_ele == ele:
                             alreadySelected = True
-
 
                 if not alreadySelected:  # add parameter to parameterFit and pre-set boundary
                     if column == 1:  # thickness
@@ -2130,25 +2224,25 @@ class sampleWidget(QWidget):
             my_indices.append(column)
         self.setTable()  # reset the table
 
-    def changeStepSize(self):
+    def changeStepSize(self): 
         """
         Purpose: Change step size when signaled
         """
         self._step_size = self.step_size.text()
 
-    def changePrecision(self):
+    def changePrecision(self): 
         """
         Purpose: Change the precision value
         """
         self._precision = self.precisionWidget.text()
 
-    def changeEPrecision(self):
+    def changeEPrecision(self): 
         """
         Purpose: Change the precision value
         """
         self._Eprecision = self.Eprecision.text()
 
-    def _setVarMagFromSample(self, sample):
+    def _setVarMagFromSample(self, sample): 
         """
         Purpose: Retrieve element variation and magnetic data from slab class
         :param sample: slab class
@@ -2180,7 +2274,6 @@ class sampleWidget(QWidget):
                     self.varData[ele][idx][2] = element.scattering_factor  # form factor
                     self.magData[ele][idx][2] = ['' for i in range(len(element.polymorph))]  # form factor
 
-
                 # element writing
                 if len(element.mag_density) != 0:
                     n = len(element.mag_density)  # number of element variations
@@ -2204,7 +2297,7 @@ class sampleWidget(QWidget):
                 elif gamma == 0 and phi == 0:
                     self.magDirection[idx] = 'z'
 
-    def _setStructFromSample(self, sample):
+    def _setStructFromSample(self, sample): 
         """
         Purpose: Retrieves crystal data from the slab class and converts into form that can be used by structTable
         :param sample: slab class
@@ -2212,7 +2305,6 @@ class sampleWidget(QWidget):
         self.sample = sample  # resets internal slab class
         find_sf = self.sample.find_sf  # retrieves form factors
         self.structTableInfo = []  # resets structure info
-
         # loops through each layer and retrieves info
         for idx in range(len(sample.structure)):
             structInfo = sample.structure  # structure info
@@ -2250,8 +2342,8 @@ class sampleWidget(QWidget):
                         if type(scattering_factor) is not list and type(scattering_factor) is not np.ndarray:
                             name = 'ff-' + scattering_factor
                             if name not in list(self.eShift.keys()):
-                                self.eShift[name] = 0
-                                self.ffScale[name] = 1
+                                self.eShift[name] = [0, 0, 0]
+                                self.ffScale[name] = [1,1,1]
 
                         tempArray[row, col] = str(scattering_factor)
                     elif col == 6:  # stoichiometry
@@ -2261,14 +2353,14 @@ class sampleWidget(QWidget):
 
             self.structTableInfo.append(tempArray)  # update struct table info
 
-    def clearTable(self):
+    def clearTable(self):  
         """
         Purpose: Clear structure table
         """
         self.structTable.setRowCount(0)
         self.structTable.setColumnCount(7)
 
-    def setTable(self):
+    def setTable(self): 
         """
         Purpose: set the structure table
         """
@@ -2341,14 +2433,14 @@ class sampleWidget(QWidget):
 
             self.structTable.blockSignals(False)
 
-    def clearVarTable(self):
+    def clearVarTable(self): 
         """
         Purpose: clear element variation table
         """
         self.varTable.setRowCount(0)
         self.varTable.setColumnCount(3)
 
-    def setTableVar(self):
+    def setTableVar(self): 
         """
         Purpose: Set element variation table
         """
@@ -2408,14 +2500,14 @@ class sampleWidget(QWidget):
 
             self.varTable.blockSignals(False)
 
-    def clearMagTable(self):
+    def clearMagTable(self): 
         """
         Purpose: clear magnetization table
         """
         self.magTable.setRowCount(0)
         self.magTable.setColumnCount(2)
 
-    def setTableMag(self):
+    def setTableMag(self): 
 
         if len(self.structTableInfo) != 0:  # checks if there is magnetization info
             self.magTable.blockSignals(True)
@@ -2512,7 +2604,7 @@ class sampleWidget(QWidget):
 
             self.magTable.blockSignals(False)
 
-    def _addLayer(self):
+    def _addLayer(self): 
         """
         Purpose: initialize compoundInput widget and add layer info
         """
@@ -2526,7 +2618,6 @@ class sampleWidget(QWidget):
         num_layers = len(self.structTableInfo)  # determines the number of layers
         my_elements = []  # keeps track of the elements
         no_error = True  # boolean used to track if an error has been made
-
         # initializing the element variation and magnetic data
         if len(self.structTableInfo) != 0:
             if len(userinput) != len(self.structTableInfo[0]):  # checks to make sure number of elements is consistent
@@ -2539,10 +2630,11 @@ class sampleWidget(QWidget):
             for i in range(len(userinput)):
                 # includes new scattering factors into the energy shift
                 if userinput[i][5] not in self.sample.eShift.keys():
-                    self.sample.eShift[userinput[i][5]] = 0
+                    self.sample.eShift[userinput[i][5]] = [0, 0, 0]
+                    self.sample.ff_scale[userinput[i][5]] = [1, 1, 1]
                     name = 'ff-' + userinput[i][5]
-                    self.eShift[name] = 0
-                    self.ffScale[name] = 1
+                    self.eShift[name] = [0, 0, 0]
+                    self.ffScale[name] = [1, 1, 1]
                 my_elements.append(userinput[i][0])
                 if userinput[i][0] not in list(self.varData.keys()):  # checks if added element already defined with element variations
                     self.varData[userinput[i][0]] = [[['', ''], ['', ''], ['', '']] for j in range(num_layers)]
@@ -2607,7 +2699,7 @@ class sampleWidget(QWidget):
                     self.magDirection.insert(idx + 1, 'z')
                 self.layerBox.setCurrentIndex(idx + 1)
 
-    def _removeLayer(self):
+    def _removeLayer(self): 
         """
         Purpose: Remove selected layer
         """
@@ -2704,7 +2796,7 @@ class sampleWidget(QWidget):
                             del self.sample.ffm_scale[to_remove]
 
 
-    def _copyLayer(self):
+    def _copyLayer(self): 
         """
         Purpose: Copy the current selected layer and add above
         """
@@ -2737,7 +2829,7 @@ class sampleWidget(QWidget):
         new_dir = copy.deepcopy(self.magDirection[idx])  # adds mag direction
         self.magDirection.insert(idx + 1, new_dir)
 
-    def _structural(self):
+    def _structural(self): 
         """
         Purpose: Sets workspace to sampleWidget
         """
@@ -2747,7 +2839,7 @@ class sampleWidget(QWidget):
         self.shiftButton.setStyleSheet('background: lightGrey')
         self.sampleInfoLayout.setCurrentIndex(0)
 
-    def _elementVariation(self):
+    def _elementVariation(self): 
         """
         Purpose: Sets workspace to variationWidget
         """
@@ -2757,7 +2849,7 @@ class sampleWidget(QWidget):
         self.shiftButton.setStyleSheet('background: lightGrey')
         self.sampleInfoLayout.setCurrentIndex(1)
 
-    def _magnetic(self):
+    def _magnetic(self): 
         """
         Purpose: Sets workspace to magneticWidget
         """
@@ -2768,7 +2860,7 @@ class sampleWidget(QWidget):
 
         self.sampleInfoLayout.setCurrentIndex(2)
 
-    def _densityprofile(self):
+    def _densityprofile(self): 
 
         """
         Purpose: Calculate the density profile from the sample info
@@ -2778,11 +2870,10 @@ class sampleWidget(QWidget):
         self.sample = self._createSample()  # transform sample information into slab class
 
         thickness, density, density_magnetic = self.sample.density_profile(step=step_size)  # compute density profile
-
         self.densityWidget.clear()  # clear graph
         self._plotDensityProfile(thickness, density, density_magnetic)  # plot density profile
 
-    def _plotDensityProfile(self, thickness, density, density_magnetic):
+    def _plotDensityProfile(self, thickness, density, density_magnetic): 
         """
         Purpose: plot the density profile
         :param thickness: thickness numpy array
@@ -2804,7 +2895,6 @@ class sampleWidget(QWidget):
                 check.append(True)
             else:
                 check.append(False)
-
         # plot density profile
         for idx in range(len(val)):
             if check[idx]:
@@ -2824,7 +2914,7 @@ class sampleWidget(QWidget):
         self.densityWidget.setLabel('left', "Density (mol/cm^3)")
         self.densityWidget.setLabel('bottom', "Thickness (Å)")
 
-    def _createSample(self):
+    def _createSample(self): 
         """
         Purpose: Takes information from tables and converts into slab class
         :return: Information in format of slab class
@@ -2843,10 +2933,8 @@ class sampleWidget(QWidget):
             scat_fact = []  # scattering factors of the layer
 
             layer = self.structTableInfo[idx]  # gets the layer information
-
             for ele in range(len(layer)):
                 element = layer[ele]  # element data
-
 
                 # remove numbers from symbol
                 symbol = []
@@ -2872,9 +2960,7 @@ class sampleWidget(QWidget):
                 if element[5][-1] != '[':
                     scat_fact.append(element[5])
 
-                # scat_fact.append(element[5])
                 # still need to take into account sf that are different than element
-
             sample.addlayer(idx, formula, thickness, density=density, roughness=roughness,
                             linked_roughness=linked_roughness, sf=scat_fact)
 
@@ -2884,14 +2970,12 @@ class sampleWidget(QWidget):
                 sample.eShift[str(key)[3:]] = value
             elif str(key).startswith('ffm-'):
                 sample.mag_eShift[str(key)[4:]] = value
-
         # setting the form factor scaling values
         for key, value in self.ffScale.items():
             if str(key).startswith('ff-'):
                 sample.ff_scale[str(key)[3:]] = value
             elif str(key).startswith('ffm-'):
                 sample.ffm_scale[str(key)[4:]] = value
-
         for idx in range(m):
             layer = self.structTableInfo[idx]  # gets the layer information
             for ele in range(len(layer)):
@@ -2905,7 +2989,6 @@ class sampleWidget(QWidget):
                 scattering_factor = poly[2]
                 if len(names) > 1:  # checks if element has any element variations
                     if names[0] != '':
-
                         ratio = [float(ratio[i]) for i in range(len(ratio))]
 
                         if type(scattering_factor) is str:
@@ -2970,7 +3053,6 @@ class sampleWidget(QWidget):
                 if count == len(scattering_factor):
                     isMagnetized = False
 
-
                 # sets values if magnetized
                 if isMagnetized:
 
@@ -3018,7 +3100,7 @@ class sampleWidget(QWidget):
 
         return sample
 
-    def getData(self):
+    def getData(self): 
         """
         Purpose: retrieves the sample information for the slab class
         """
@@ -3078,7 +3160,7 @@ class sampleWidget(QWidget):
                 self.magDirection[j] = 'z'
 
     @property
-    def precision(self):
+    def precision(self): 
         return self._precision
 
 
@@ -3086,7 +3168,7 @@ class reflectivityWidget(QWidget):
     """
     Purpose: This widget handles the reflectivity workspace
     """
-    def __init__(self, parent, sWidget, data, data_dict, sim_dict):
+    def __init__(self, parent, sWidget, data, data_dict, sim_dict): 
         """
         :param parent: main application to apply preferences
         :param sWidget: sampleWidget
@@ -3168,11 +3250,11 @@ class reflectivityWidget(QWidget):
         # grazing angle field
         simAngleLayout = QHBoxLayout()
         simAngleLabel = QLabel('Angle (degrees): ')
-        simAngleLabel.setFixedWidth(80)
+        simAngleLabel.setFixedWidth(90)
         self.simAngleEdit = QLineEdit()
         self.simAngleEdit.setText('5')
         self.simAngleEdit.editingFinished.connect(self.setAngle)
-        self.simAngleEdit.setFixedWidth(200)
+        self.simAngleEdit.setFixedWidth(190)
         simAngleLayout.addWidget(simAngleLabel)
         simAngleLayout.addWidget(self.simAngleEdit)
 
@@ -3282,9 +3364,9 @@ class reflectivityWidget(QWidget):
         self.stepWidget = QLineEdit()
         self.stepWidget.textChanged.connect(self.changeStepSize)
         self.stepWidget.setText(self.sWidget._step_size)
-        self.stepWidget.setMaximumWidth(175)
+        self.stepWidget.setMaximumWidth(160)
         stepLabel = QLabel('Step Size (Å):')
-        stepLabel.setMaximumWidth(65)
+        stepLabel.setMaximumWidth(80)
         stepLayout = QHBoxLayout()
         stepLayout.addWidget(stepLabel)
         stepLayout.addWidget(self.stepWidget)
@@ -3293,9 +3375,9 @@ class reflectivityWidget(QWidget):
         self.precisionWidget = QLineEdit()
         self.precisionWidget.textChanged.connect(self.changePrecision)
         self.precisionWidget.setText(self.sWidget._precision)
-        self.precisionWidget.setMaximumWidth(175)
+        self.precisionWidget.setMaximumWidth(160)
         precisionLabel = QLabel('Precision (qz):')
-        precisionLabel.setMaximumWidth(65)
+        precisionLabel.setMaximumWidth(80)
         precisionLayout = QHBoxLayout()
         precisionLayout.addWidget(precisionLabel)
         precisionLayout.addWidget(self.precisionWidget)
@@ -3304,9 +3386,9 @@ class reflectivityWidget(QWidget):
         self.EprecisionWidget = QLineEdit()
         self.EprecisionWidget.textChanged.connect(self.changeEPrecision)
         self.EprecisionWidget.setText(self.sWidget._Eprecision)
-        self.EprecisionWidget.setMaximumWidth(175)
+        self.EprecisionWidget.setMaximumWidth(160)
         EprecisionLabel = QLabel('Precision (E):')
-        EprecisionLabel.setMaximumWidth(65)
+        EprecisionLabel.setMaximumWidth(80)
         EprecisionLayout = QHBoxLayout()
         EprecisionLayout.addWidget(EprecisionLabel)
         EprecisionLayout.addWidget(self.EprecisionWidget)
@@ -3428,21 +3510,21 @@ class reflectivityWidget(QWidget):
 
         bsLayout = QHBoxLayout()
         bsLabel = QLabel('Background Shift:')
-        bsLabel.setFixedWidth(90)
+        bsLabel.setFixedWidth(105)
         self.backgroundShift = QLineEdit()
         self.scalingFactor = QLineEdit()
         self.backgroundShift.editingFinished.connect(self.changeSFandBS)
-        self.backgroundShift.setFixedWidth(100)
+        self.backgroundShift.setFixedWidth(85)
         self.backgroundShift.setFixedHeight(25)
         bsLayout.addWidget(bsLabel)
         bsLayout.addWidget(self.backgroundShift)
 
         sfLayout = QHBoxLayout()
         sfLabel = QLabel('Scaling Factor:')
-        sfLabel.setFixedWidth(90)
+        sfLabel.setFixedWidth(105)
         # self.scalingFactor.textChanged.connect(self.changeSFandBS)
         self.scalingFactor.editingFinished.connect(self.changeSFandBS)
-        self.scalingFactor.setFixedWidth(100)
+        self.scalingFactor.setFixedWidth(85)
         self.scalingFactor.setFixedHeight(25)
         sfLayout.addWidget(sfLabel)
         sfLayout.addWidget(self.scalingFactor)
@@ -3489,7 +3571,7 @@ class reflectivityWidget(QWidget):
         self.setLayout(pagelayout)
 
 
-    def changeToReflScan(self):
+    def changeToReflScan(self): 
         """
         Purpose: Plot reflectivity scan simulation
         """
@@ -3498,7 +3580,7 @@ class reflectivityWidget(QWidget):
         self.scanType = True
         self.mySimPlotting()
 
-    def changeToEnergyScan(self):
+    def changeToEnergyScan(self): 
         """
         Purpose: Plot energy scan simulation
         """
@@ -3507,7 +3589,7 @@ class reflectivityWidget(QWidget):
         self.scanType = False
         self.mySimPlotting()
 
-    def rPlotSim(self):
+    def rPlotSim(self): 
         """
         Purpose: Plot the simulation scan
         """
@@ -3596,7 +3678,7 @@ class reflectivityWidget(QWidget):
             self.spectrumWidget.setLabel('left', "Reflectivity, R")
             self.spectrumWidget.setLogMode(False, False)
 
-    def opPlotSim(self):
+    def opPlotSim(self): 
         """
         Purpose: plot the optical profile
         """
@@ -3609,7 +3691,7 @@ class reflectivityWidget(QWidget):
         self.rButtonSim.setStyleSheet('background: grey')
         self.opButtonSim.setStyleSheet('background: cyan')
         self.opmButtonSim.setStyleSheet('background: grey')
-
+        self.spectrumWidget.clear()
         E = float(self.simEnergyEdit.text())
 
         step_size = float(self.sWidget._step_size)
@@ -3619,42 +3701,63 @@ class reflectivityWidget(QWidget):
         sfm = dict()  # form factors of magnetic components
 
         # Non-Magnetic Scattering Factor
-        for e in self.sample.find_sf[0].keys():
+        for e in self.sample.find_sf[0].keys(): #3-DIm
             name = 'ff-' + self.sample.find_sf[0][e]
-            dE = float(self.sWidget.eShift[name])
-            scale = float(self.sWidget.ffScale[name])
-            sf[e] = ms.find_form_factor(self.sample.find_sf[0][e], E + dE, False)*scale
+            dE = [float(k) for k in self.sWidget.eShift[name]] #3-Dim
+            scale = [float(k) for k in self.sWidget.ffScale[name]]
+            F = ms.find_form_factor(self.sample.find_sf[0][e], np.array(E) + dE, False)
+            sf[e] = [F[k]*scale[k] for k in range(len(F))]
         # Magnetic Scattering Factor
-        for em in self.sample.find_sf[1].keys():
+        for em in self.sample.find_sf[1].keys(): #1-Dim
             name = 'ffm-' + self.sample.find_sf[1][em]
-            dE = float(self.sWidget.eShift[name])
+            dE = float(self.sWidget.eShift[name])   #1-Dim
             scale = float(self.sWidget.ffScale[name])
             sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True)*scale
 
         delta, beta = ms.index_of_refraction(density, sf, E)  # calculates dielectric constant for structural component
-        delta_m, beta_m = ms.magnetic_optical_constant(density_magnetic,sfm,E)  # magnetic optical components
+
+        delta_m, beta_m = ms.magnetic_optical_constant(density_magnetic, sfm, E)   # calculates depth-dependent magnetic components
+        # in case the sample is not defined to be magnetic (for ALS)
+        if type(delta_m) != list and type(delta_m) != np.ndarray:
+            delta_m = np.zeros(len(delta[0]))
+        if type(beta_m) != list and type(beta_m) != np.ndarray:
+            beta_m = np.zeros(len(beta[0]))
 
         my_slabs = ms.ALS(delta, beta, delta_m, beta_m, precision=float(self.sWidget._precision))  # adaptive layer segmentation
         my_thickness = []
-        my_value = []
+        my_valuex = []
+        my_valuey = []
+        my_valuez = []
 
         # my_thickness = my_thickness + [0]
         for s in my_slabs:  # sets up the data to display adaptive layer segmentation
             x = thickness[int(s)]
-            d = delta[int(s)]
+            dx = delta[0][int(s)]
+            dy = delta[1][int(s)]
+            dz = delta[2][int(s)]
 
-            my_thickness.extend([x, x, x])
-            my_value.extend([0, d, 0])
+            my_thickness.extend([x,x,x])
+            my_valuex.extend([0,dx,0])
+            my_valuey.extend([0,dy,0])
+            my_valuez.extend([0,dz,0])
 
-        self.spectrumWidget.plot(thickness, delta, pen=pg.mkPen((0, 2), width=2), name='delta')
-        self.spectrumWidget.plot(thickness, beta, pen=pg.mkPen((1, 2), width=2), name='beta')
+            self.spectrumWidget.plot(thickness, delta[0], pen=pg.mkPen((0, 2), width=2), name='delta_x')
+            self.spectrumWidget.plot(thickness, delta[1], pen=pg.mkPen((0, 2), width=2), name='delta_y')
+            self.spectrumWidget.plot(thickness, delta[2], pen=pg.mkPen((0, 2), width=2), name='delta_z')
+            self.spectrumWidget.plot(thickness, beta[0], pen=pg.mkPen((1, 2), width=2), name='beta_x')
+            self.spectrumWidget.plot(thickness, beta[1], pen=pg.mkPen((1, 2), width=2), name='beta_y')
+            self.spectrumWidget.plot(thickness, beta[2], pen=pg.mkPen((1, 2), width=2), name='beta_z')
+
         if self.showLayers.checkState():
-            self.spectrumWidget.plot(my_thickness, my_value)
+            self.spectrumWidget.plot(my_thickness, my_valuex)
+            self.spectrumWidget.plot(my_thickness, my_valuey)
+            self.spectrumWidget.plot(my_thickness, my_valuez)
+
         self.spectrumWidget.setLabel('left', "Reflectivity, R")
         self.spectrumWidget.setLabel('bottom', "Thickness, Å")
         self.spectrumWidget.setLogMode(False, False)
 
-    def opmPlotSim(self):
+    def opmPlotSim(self): 
         """
         Purpose: plot the magnetic optical profile
         """
@@ -3692,13 +3795,14 @@ class reflectivityWidget(QWidget):
 
         if len(orbitals) == 0:
             # Non-Magnetic Scattering Factor
-            for e in self.sample.find_sf[0].keys():
+            for e in self.sample.find_sf[0].keys(): #3-Dim
                 name = 'ff-' + self.sample.find_sf[0][e]
-                dE = float(self.sWidget.eShift[name])
-                scale = float(self.sWidget.ffScale[name])
-                sf[e] = ms.find_form_factor(self.sample.find_sf[0][e], E + dE, False) * scale
+                dE = [float(k) for k in self.sWidget.eShift[name]]
+                scale = [float(k) for k in self.sWidget.ffScale[name]]
+                F = ms.find_form_factor(self.sample.find_sf[0][e], np.array(E) + dE, False)
+                sf[e] = [F[k]*scale[k] for k in range(len(F))]
             # Magnetic Scattering Factor
-            for em in self.sample.find_sf[1].keys():
+            for em in self.sample.find_sf[1].keys(): #1-Dim
                 name = 'ffm-' + self.sample.find_sf[1][em]
                 dE = float(self.sWidget.eShift[name])
                 scale = float(self.sWidget.ffScale[name])
@@ -3707,9 +3811,10 @@ class reflectivityWidget(QWidget):
             # Non-Magnetic Scattering Factor
             for e in self.sample.find_sf[0].keys():
                 name = 'ff-' + self.sample.find_sf[0][e]
-                dE = float(self.sWidget.eShift[name])
-                scale = float(self.sWidget.ffScale[name])
-                sf[e] = ms.find_ff(self.sample.find_sf[0][e], E+dE, sf_dict)
+                dE = [float(k) for k in self.sWidget.eShift[name]]
+                scale = [float(k) for k in self.sWidget.ffScale[name]]
+                F = ms.find_ff(self.sample.find_sf[0][e], np.array(E) + dE, sf_dict)
+                sf[e] =  [F[k]*scale[k] for k in range(len(F))]
             # Magnetic Scattering Factor
             for em in self.sample.find_sf[1].keys():
                 name = 'ffm-' + self.sample.find_sf[1][em]
@@ -3717,10 +3822,13 @@ class reflectivityWidget(QWidget):
                 scale = float(self.sWidget.ffScale[name])
                 sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True) * scale
 
-        delta, beta = ms.magnetic_optical_constant(density, sf,
-                                                   E)  # calculates dielectric constant for magnetic component
-        delta_m, beta_m = ms.index_of_refraction(density_magnetic, sfm,
-                                                 E)  # calculates dielectric constant for magnetic component
+        delta, beta = ms.magnetic_optical_constant(density, sf, E)  # calculates dielectric constant for magnetic component
+        delta_m, beta_m = ms.index_of_refraction(density_magnetic, sfm, E)   # calculates depth-dependent magnetic components
+        # in case the sample is not defined to be magnetic (for ALS)
+        if type(delta_m) != list and type(delta_m) != np.ndarray:
+            delta_m = np.zeros(len(delta[0]))
+        if type(beta_m) != list and type(beta_m) != np.ndarray:
+            beta_m = np.zeros(len(beta[0]))
 
         my_slabs = ms.ALS(delta, beta, delta_m, beta_m, precision=float(self.sWidget._precision))
         my_thickness = []
@@ -3729,10 +3837,9 @@ class reflectivityWidget(QWidget):
         # my_thickness = my_thickness + [0]
         for s in my_slabs:  # adaptive layer segmentation display setup
             x = thickness[int(s)]
-            d = delta_m[int(s)]
-
-            my_thickness.extend([x, x, x])
-            my_value.extend([0, d, 0])
+            dx = delta_m[int(s)]
+            my_thickness.extend([x,x,x])
+            my_value.extend([0,dx,0])
 
         if len(density_magnetic) == 0:
             self.spectrumWidget.plot(thickness, np.zeros(len(thickness)), pen=pg.mkPen((0, 2), width=2), name='delta_m')
@@ -3742,12 +3849,11 @@ class reflectivityWidget(QWidget):
             self.spectrumWidget.plot(thickness, beta_m, pen=pg.mkPen((1, 2), width=2), name='beta_m')
             if self.showLayers.checkState():
                 self.spectrumWidget.plot(my_thickness, my_value)
-
         self.spectrumWidget.setLabel('left', "Reflectivity, R")
         self.spectrumWidget.setLabel('bottom', "Thickness, Å")
         self.spectrumWidget.setLogMode(False, False)
 
-    def setAngle(self):
+    def setAngle(self): 
         """
         Purpose: Makes sure angle is within the appropriate range
         """
@@ -3764,7 +3870,7 @@ class reflectivityWidget(QWidget):
                 self.simAngleEdit.setText(str(angle))
                 self.mySimPlotting()
 
-    def setEnergy(self):
+    def setEnergy(self): 
         """
         Purpose: Makes sure the energy is set within the appropriate range
         """
@@ -3778,7 +3884,7 @@ class reflectivityWidget(QWidget):
             self.simUpEnergy.setText(upper)
             self.mySimPlotting()
 
-    def setLowerEnergy(self):
+    def setLowerEnergy(self): 
         """
         Purpose: set the lower energy for the simulation plot
         """
@@ -3791,7 +3897,7 @@ class reflectivityWidget(QWidget):
         self.simLowEnergy.setText(str(lower))
         self.mySimPlotting()
 
-    def setUpperEnergy(self):
+    def setUpperEnergy(self): 
         """
         Purpose: set the upper energy for the simulation plot
         """
@@ -3804,7 +3910,7 @@ class reflectivityWidget(QWidget):
         self.simUpEnergy.setText(str(upper))
         self.mySimPlotting()
 
-    def value_changed(self):
+    def value_changed(self): 
         """
         Purpose: Changes scan boundaries
         """
@@ -3852,7 +3958,7 @@ class reflectivityWidget(QWidget):
                         self.currentVal[idx] = [var, [lower, upper]]
 
 
-    def sfChange(self):
+    def sfChange(self): 
         """
         Purpose: Change the scaling factor when signaled
         """
@@ -3883,7 +3989,7 @@ class reflectivityWidget(QWidget):
                         idx = self.sfBsFitParams.index(['SCALING FACTOR', name])
                         self.currentVal[idx] = [var, [lower, upper]]
 
-    def changeFitColor(self):
+    def changeFitColor(self): 
         """
         Purpose: change the color of working space if parameter is to be fit
         """
@@ -3902,14 +4008,14 @@ class reflectivityWidget(QWidget):
             elif fit[0] == 'SCALING FACTOR' and fit[1] == name:
                 self.scalingFactor.setStyleSheet('background: red')
 
-    def allScanStateChanged(self):
+    def allScanStateChanged(self): 
         """
         Purpose: erase the fitting parameters previously input by the user
         """
         self.sfBsFitParams = []
         self.changeFitColor()
 
-    def fitBackgroundShift(self):
+    def fitBackgroundShift(self): 
         """
         Purpose: Add background shift to fitting parameters
         """
@@ -3934,7 +4040,7 @@ class reflectivityWidget(QWidget):
 
         self.changeFitColor()
 
-    def fitScalingFactor(self):
+    def fitScalingFactor(self): 
         """
         Purpose: Add scaling factor to fitting parameters
         """
@@ -3963,7 +4069,7 @@ class reflectivityWidget(QWidget):
 
         self.changeFitColor()
 
-    def unfitBackgroundShift(self):
+    def unfitBackgroundShift(self): 
         """
         Purpose: Remove background shift from fitting parameters
         """
@@ -3982,7 +4088,7 @@ class reflectivityWidget(QWidget):
                     self.currentVal.pop(idx)
         self.changeFitColor()
 
-    def unfitScalingFactor(self):
+    def unfitScalingFactor(self): 
         """
         Purpose: Remove scaling factor from fitting parameters
         """
@@ -4002,7 +4108,7 @@ class reflectivityWidget(QWidget):
 
         self.changeFitColor()
 
-    def changeSFandBS(self):
+    def changeSFandBS(self): 
         """
         Purpose: change scaling factor and background shift when signaled
         """
@@ -4021,25 +4127,25 @@ class reflectivityWidget(QWidget):
                     self.data_dict[key]['Background Shift'] = float(bs)
                     self.data_dict[key]['Scaling Factor'] = float(sf)
 
-    def changeStepSize(self):
+    def changeStepSize(self): 
         """
         Purpose: Change the step size
         """
         self.sWidget._step_size = self.stepWidget.text()
 
-    def changePrecision(self):
+    def changePrecision(self): 
         """
         Purpose: Change the precision value
         """
         self.sWidget._precision = self.precisionWidget.text()
 
-    def changeEPrecision(self):
+    def changeEPrecision(self): 
         """
         Purpose: Change the precision value
         """
         self.sWidget._Eprecision = self.EprecisionWidget.text()
 
-    def mySimPlotting(self):
+    def mySimPlotting(self): 
         """
         Purpose: determine to plot reflectometry, optical profile, or magnetic optical profile for simulation
         :return:
@@ -4058,7 +4164,7 @@ class reflectivityWidget(QWidget):
         elif idx == 2:  # magneto-optical profile
             self.opmPlotSim()
 
-    def myPlotting(self):
+    def myPlotting(self): 
         """
         Purpose: determine to plot relfectometry, optical profile, magneto-optical profile
         :return:
@@ -4078,7 +4184,7 @@ class reflectivityWidget(QWidget):
         elif idx == 2:  # magneto-optical profile
             self.opmPlot()
 
-    def rPlot(self):
+    def rPlot(self): 
         """
         Purpose: plot reflectometry
         """
@@ -4098,7 +4204,7 @@ class reflectivityWidget(QWidget):
             self.plot_selected_scans()
             self.setTable()
 
-    def opPlot(self):
+    def opPlot(self): 
         """
         Purpose: plot optical profile
         """
@@ -4142,23 +4248,25 @@ class reflectivityWidget(QWidget):
 
             # Non-Magnetic Scattering Factor
             if len(orbitals) == 0:
-                for e in self.sample.find_sf[0].keys():
+                for e in self.sample.find_sf[0].keys(): #3-Dim
                     name = 'ff-' + self.sample.find_sf[0][e]
-                    dE = float(self.sWidget.eShift[name])
-                    scale = float(self.sWidget.ffScale[name])
-                    sf[e] = ms.find_form_factor(self.sample.find_sf[0][e], E + dE, False)*scale
+                    dE = [float(k) for k in self.sWidget.eShift[name]] #3-Dim
+                    scale = [float(k) for k in self.sWidget.ffScale[name]]
+                    F = ms.find_form_factor(self.sample.find_sf[0][e],np.array(E) + dE, False)
+                    sf[e] = [F[k]*scale[k] for k in range(len(F))]
                 # Magnetic Scattering Factor
-                for em in self.sample.find_sf[1].keys():
+                for em in self.sample.find_sf[1].keys(): #1-Dim
                     name = 'ffm-' + self.sample.find_sf[1][em]
-                    dE = float(self.sWidget.eShift[name])
+                    dE = float(self.sWidget.eShift[name])   #1-Dim
                     scale = float(self.sWidget.ffScale[name])
                     sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True)*scale
             else:
                 for e in self.sample.find_sf[0].keys():
                     name = 'ff-' + self.sample.find_sf[0][e]
-                    dE = float(self.sWidget.eShift[name])
-                    scale = float(self.sWidget.ffScale[name])
-                    sf[e] = ms.find_ff(self.sample.find_sf[0][e], E + dE, sf_dict)
+                    dE = [float(k) for k in self.sWidget.eShift[name]]
+                    scale = [float(k) for k in self.sWidget.ffScale[name]]
+                    F = ms.find_ff(self.sample.find_sf[0][e], np.array(E) + dE, sf_dict)
+                    sf[e] =  [F[k]*scale[k] for k in range(len(F))]
                 # Magnetic Scattering Factor
                 for em in self.sample.find_sf[1].keys():
                     name = 'ffm-' + self.sample.find_sf[1][em]
@@ -4166,9 +4274,9 @@ class reflectivityWidget(QWidget):
                     scale = float(self.sWidget.ffScale[name])
                     sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True) * scale
 
-            delta, beta = ms.index_of_refraction(density, sf,
-                                                 E)  # calculates dielectric constant for structural component
-            delta_m, beta_m = ms.magnetic_optical_constant(density_magnetic, sfm, E)
+            delta, beta = ms.index_of_refraction(density, sf, E)  # calculates dielectric constant for structural component
+            
+            delta_m, beta_m = ms.magnetic_optical_constant(density_magnetic, sfm, E)   # calculates depth-dependent magnetic components
 
             # in case the sample is not defined to be magnetic (for ALS)
             if type(delta_m) != list and type(delta_m) != np.ndarray:
@@ -4178,30 +4286,41 @@ class reflectivityWidget(QWidget):
 
             my_slabs = ms.ALS(delta, beta, delta_m, beta_m, precision=float(self.sWidget._precision))
             my_thickness = []
-            my_value = []
+            my_valuex = []
+            my_valuey = []
+            my_valuez = []
 
             #my_thickness = my_thickness + [0]
             for s in my_slabs:  # for ALS display
-
                 x = thickness[int(s)]
-                d = delta[int(s)]
+                dx = delta[0][int(s)]
+                dy = delta[1][int(s)]
+                dz = delta[2][int(s)]
 
                 my_thickness.extend([x,x,x])
-                my_value.extend([0,d,0])
+                my_valuex.extend([0,dx,0])
+                my_valuey.extend([0,dy,0])
+                my_valuez.extend([0,dz,0])
 
+            self.spectrumWidget.plot(thickness, delta[0], pen=pg.mkPen((0, 2), width=2), name='delta_x')
+            self.spectrumWidget.plot(thickness, delta[1], pen=pg.mkPen((0, 2), width=2), name='delta_y')
+            self.spectrumWidget.plot(thickness, delta[2], pen=pg.mkPen((0, 2), width=2), name='delta_z')
+            self.spectrumWidget.plot(thickness, beta[0], pen=pg.mkPen((1, 2), width=2), name='beta_x')
+            self.spectrumWidget.plot(thickness, beta[1], pen=pg.mkPen((1, 2), width=2), name='beta_y')
+            self.spectrumWidget.plot(thickness, beta[2], pen=pg.mkPen((1, 2), width=2), name='beta_z')
 
-
-            self.spectrumWidget.plot(thickness, delta, pen=pg.mkPen((0, 2), width=2), name='delta')
-            self.spectrumWidget.plot(thickness, beta, pen=pg.mkPen((1, 2), width=2), name='beta')
             if self.showLayers.checkState():
-                self.spectrumWidget.plot(my_thickness, my_value)
+                self.spectrumWidget.plot(my_thickness, my_valuex)
+                self.spectrumWidget.plot(my_thickness, my_valuey)
+                self.spectrumWidget.plot(my_thickness, my_valuez)
+
 
             self.spectrumWidget.setLabel('left', "Reflectivity, R")
             self.spectrumWidget.setLabel('bottom', "Thickness, Å")
             self.spectrumWidget.setLogMode(False, False)
             # delta_m, beta_m = ms.magnetic_optical_constant(density_magnetic, sfm, E)  # calculates dielectric constant for magnetic component
 
-    def opmPlot(self):
+    def opmPlot(self): 
         """
         Purpose: plot magneto-optical profile
         """
@@ -4243,7 +4362,6 @@ class reflectivityWidget(QWidget):
             thickness, density, density_magnetic = self.sample.density_profile(
                 step=step_size)  # Computes the density profile
 
-
             # Non-Magnetic Scattering Factor
 
             sf = dict()  # form factors of non-magnetic components
@@ -4251,23 +4369,25 @@ class reflectivityWidget(QWidget):
 
             # Non-Magnetic Scattering Factor
             if len(orbitals) == 0:
-                for e in self.sample.find_sf[0].keys():
+                for e in self.sample.find_sf[0].keys(): #3-Dim
                     name = 'ff-' + self.sample.find_sf[0][e]
-                    dE = float(self.sWidget.eShift[name])
-                    scale = float(self.sWidget.ffScale[name])
-                    sf[e] = ms.find_form_factor(self.sample.find_sf[0][e], E + dE, False) * scale
+                    dE = [float(k) for k in self.sWidget.eShift[name]] #3-Dim
+                    scale = [float(k) for k in self.sWidget.ffScale[name]]
+                    F = ms.find_form_factor(self.sample.find_sf[0][e], np.array(E) + dE, False)
+                    sf[e] = [F[k]*scale[k] for k in range(len(F))]
                 # Magnetic Scattering Factor
-                for em in self.sample.find_sf[1].keys():
+                for em in self.sample.find_sf[1].keys(): #1-Dim
                     name = 'ffm-' + self.sample.find_sf[1][em]
-                    dE = float(self.sWidget.eShift[name])
+                    dE = float(self.sWidget.eShift[name])   #1-Dim
                     scale = float(self.sWidget.ffScale[name])
                     sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True) * scale
             else:
                 for e in self.sample.find_sf[0].keys():
                     name = 'ff-' + self.sample.find_sf[0][e]
-                    dE = float(self.sWidget.eShift[name])
-                    scale = float(self.sWidget.ffScale[name])
-                    sf[e] = ms.find_ff(self.sample.find_sf[0][e], E+dE, sf_dict)
+                    dE = [float(k) for k in self.sWidget.eShift[name]]
+                    scale = [float(k) for k in self.sWidget.ffScale[name]]
+                    F = ms.find_ff(self.sample.find_sf[0][e], np.array(E) + dE, sf_dict)
+                    sf[e] =  [F[k]*scale[k] for k in range(len(F))]
                 # Magnetic Scattering Factor
                 for em in self.sample.find_sf[1].keys():
                     name = 'ffm-' + self.sample.find_sf[1][em]
@@ -4275,10 +4395,15 @@ class reflectivityWidget(QWidget):
                     scale = float(self.sWidget.ffScale[name])
                     sfm[em] = ms.find_form_factor(self.sample.find_sf[1][em], E + dE, True) * scale
 
-            delta, beta = ms.magnetic_optical_constant(density, sf,
-                                                           E)  # calculates dielectric constant for magnetic component
-            delta_m, beta_m = ms.index_of_refraction(density_magnetic, sfm,
-                                                           E)  # calculates dielectric constant for magnetic component
+            delta, beta = ms.magnetic_optical_constant(density, sf,  E)  # calculates dielectric constant for magnetic component
+
+            delta_m, beta_m = ms.index_of_refraction(density_magnetic, sfm, E)   # calculates depth-dependent magnetic components
+
+            # in case the sample is not defined to be magnetic (for ALS)
+            if type(delta_m) != list and type(delta_m) != np.ndarray:
+                delta_m = np.zeros(len(delta[0]))
+            if type(beta_m) != list and type(beta_m) != np.ndarray:
+                beta_m = np.zeros(len(beta[0]))
 
             my_slabs = ms.ALS(delta, beta, delta_m, beta_m, precision=float(self.sWidget._precision))
             my_thickness = []
@@ -4287,20 +4412,21 @@ class reflectivityWidget(QWidget):
             # my_thickness = my_thickness + [0]
             for s in my_slabs:
                 x = thickness[int(s)]
-                d = delta_m[int(s)]
+                dx = delta_m[int(s)]
 
-                my_thickness.extend([x, x, x])
-                my_value.extend([0, d, 0])
+                my_thickness.extend([x,x,x])
+                my_value.extend([0,dx,0])
 
             self.spectrumWidget.plot(thickness, delta_m, pen=pg.mkPen((0, 2), width=2), name='delta_m')
             self.spectrumWidget.plot(thickness, beta_m, pen=pg.mkPen((1, 2), width=2), name='beta_m')
+
             if self.showLayers.checkState():
                 self.spectrumWidget.plot(my_thickness, my_value)
             self.spectrumWidget.setLabel('left', "Reflectivity, R")
             self.spectrumWidget.setLabel('bottom', "Thickness, Å")
             self.spectrumWidget.setLogMode(False, False)
 
-    def updateAxis(self):
+    def updateAxis(self): 
         """
         Purpose: Update x-axis for qz and angle
         """
@@ -4319,7 +4445,7 @@ class reflectivityWidget(QWidget):
         else:
             self.mySimPlotting()
 
-    def changeColorScan(self):
+    def changeColorScan(self): 
         """
         Purpose: Changes all scan combobox to red demonstrating that the current scan being shown is from that selection
         """
@@ -4327,7 +4453,7 @@ class reflectivityWidget(QWidget):
         self.whichScan.setStyleSheet('background: red; selection-background-color: red')
         self.scan_state = True
 
-    def changeColorFit(self):
+    def changeColorFit(self): 
         """
         Purpose: Change color of comboBox showing the fit combobox scan is currently being shown on the plot
         """
@@ -4335,7 +4461,7 @@ class reflectivityWidget(QWidget):
         self.whichScan.setStyleSheet('background: white; selection-background-color: grey')
         self.scan_state = False
 
-    def setTable(self):
+    def setTable(self): 
         """
         Purpose: set background shift and scaling factor table
         """
@@ -4403,7 +4529,7 @@ class reflectivityWidget(QWidget):
         self.isChangeTable = False
         self.boundWeightTable.blockSignals(False)
 
-    def _scanSelection(self):
+    def _scanSelection(self): 
         """
         Purpose: add scan to scan selection list when signaled
         """
@@ -4444,7 +4570,7 @@ class reflectivityWidget(QWidget):
                 self.selectedScans.setCurrentIndex(my_idx)
                 self.setTable()
 
-    def _removeScanSelection(self):
+    def _removeScanSelection(self): 
         """
         Purpose: Remove scan from selection
         """
@@ -4472,22 +4598,29 @@ class reflectivityWidget(QWidget):
                 self.spectrumWidget.clear()
 
 
-    def addBoundWeight(self):
+    def addBoundWeight(self): 
         """
         Purpose: Add boundary weight
         """
         col = self.boundWeightTable.columnCount()
         idx = self.selectedScans.currentIndex()  # gets scan index
-        n = len(self.bounds[idx])
-        upper = self.bounds[idx][n - 1][1]  # gets the last boundary
-        self.bounds[idx][n - 1][1] = ''
-        self.bounds[idx].append(['', upper])
-        self.weights[idx].append('1')
-        self.boundWeightTable.setColumnCount(col + 1)
+        if idx <0:
+            messageBox = QMessageBox()
+            messageBox.setWindowTitle("Boundary Error")
+            messageBox.setText("Please fit a scan before adding a boundary")
+            messageBox.exec()
+            
+        else:
+            n = len(self.bounds[idx])
+            upper = self.bounds[idx][n - 1][1]  # gets the last boundary
+            self.bounds[idx][n - 1][1] = ''
+            self.bounds[idx].append(['', upper])
+            self.weights[idx].append('1')
+            self.boundWeightTable.setColumnCount(col + 1)
 
-        self.setTable()
+            self.setTable()
 
-    def removeBoundWeight(self):
+    def removeBoundWeight(self): 
         """
         Purpose: Remove boundary weight
         """
@@ -4504,7 +4637,7 @@ class reflectivityWidget(QWidget):
 
         self.setTable()
 
-    def readTable(self):
+    def readTable(self): 
         """
         Purpose: Read the table for scan boundaries
         """
@@ -4551,7 +4684,7 @@ class reflectivityWidget(QWidget):
 
             self.previousIdx = idx
 
-    def plot_scans(self):
+    def plot_scans(self): 
         """
         Purpose: plot scans from whichScan
         """
@@ -4586,9 +4719,7 @@ class reflectivityWidget(QWidget):
 
                 if scan_type == 'Reflectivity':
                     qz = dat[0]  # momentum transfer
-
                     R = dat[2]  # reflectivity
-
                     E = self.data_dict[name]['Energy']  # energy
 
                     if self.parent.reflectivity_engine == 'PythonReflectivity':
@@ -4653,7 +4784,7 @@ class reflectivityWidget(QWidget):
                     self.spectrumWidget.setLabel('bottom', "Energy, E (eV)")
         self.spectrumWidget.enableAutoRange()  # resets the range such that we view everything
 
-    def plot_selected_scans(self):
+    def plot_selected_scans(self): 
         """
         Purpose: Plot scan from selectedScans
         """
@@ -4756,12 +4887,13 @@ class reflectivityWidget(QWidget):
                 Rsim = Rsim[pol]
                 self.spectrumWidget.setLogMode(False, False)
                 self.spectrumWidget.plot(E, R, pen=pg.mkPen((0, 3), width=2), name='Data')
+
                 self.spectrumWidget.plot(E, Rsim, pen=pg.mkPen((2, 3), width=2), name='Simulation')
                 self.spectrumWidget.setLabel('left', "Reflectivity, R")
                 self.spectrumWidget.setLabel('bottom', "Energy, E (eV)")
 
 
-class Worker(QObject):
+class Worker(QObject): 
     """
     Purpose: Worker used to allow for GUI not to freeze while data fitting running
     """
@@ -4779,7 +4911,7 @@ class Worker(QObject):
         self.finished.emit()  # let process know that data fitting has terminated
 
 
-class UpdateWorker(QObject):
+class UpdateWorker(QObject): 
     """
     Purpose: Worker used to update cost function after each data fitting callback
     """
@@ -4800,7 +4932,7 @@ class UpdateWorker(QObject):
         self.function.stop()  # stop process when signaled
 
 
-class callback():
+class callback(): 
     """
     Purpose: callback function is used to manually terminate global optimization algorithms
     """
@@ -4836,7 +4968,7 @@ class GlobalOptimizationWidget(QWidget):
     """
     Purpose: Widget used to setup a data fitting
     """
-    def __init__(self, parent, sWidget, rWidget, nWidget, pWidget, rApp):
+    def __init__(self, parent, sWidget, rWidget, nWidget, pWidget, rApp): 
         super().__init__()
 
 
@@ -4913,7 +5045,6 @@ class GlobalOptimizationWidget(QWidget):
         self.plotWidget = pg.PlotWidget()
         self.plotWidget.setBackground('w')
         self.plotWidget.addLegend()
-
 
         # Global optimization parameters and fitting
         buttonLayout = QVBoxLayout()
@@ -5007,18 +5138,18 @@ class GlobalOptimizationWidget(QWidget):
 
         # total variation weight field
         totLabel = QLabel('Total Variation: ')
-        totLabel.setFixedWidth(80)
+        totLabel.setFixedWidth(125)
         totLayout = QHBoxLayout()
         self.totalVarWeight = QLineEdit('0')
         self.totalVarWeight.textChanged.connect(self._changeShapeWeight)
-        self.totalVarWeight.setFixedWidth(50)
+        self.totalVarWeight.setFixedWidth(150)
         totLayout.addWidget(totLabel)
         totLayout.addWidget(self.totalVarWeight)
 
         # view cost funcion value button
         totLayout.addStretch(1)
         costButton = QPushButton('Cost Value')
-        costButton.setFixedWidth(80)
+        costButton.setFixedWidth(125)
         costButton.clicked.connect(self.calculateCost)
         self.costValue = QLineEdit('0')
         self.costValue.setFixedWidth(150)
@@ -5029,7 +5160,7 @@ class GlobalOptimizationWidget(QWidget):
 
         # Maximum deviation button
         sigmaButton = QPushButton('Maximum Deviation')
-        sigmaButton.setFixedWidth(80)
+        sigmaButton.setFixedWidth(125)
         sigmaButton.clicked.connect(self.calculateSigma)
         self.sigmaValue = QLineEdit('0')
         self.sigmaValue.setFixedWidth(150)
@@ -5068,7 +5199,7 @@ class GlobalOptimizationWidget(QWidget):
                                  'randtobest1bin', 'currenttobest1bin', 'best2bin', 'rand2bin', 'rand1bin'])
         self.eStrategy.currentIndexChanged.connect(self.getGOParameters)
         stratLabel = QLabel('Strategy: ')
-        stratLabel.setFixedWidth(70)
+        stratLabel.setFixedWidth(90)
         eStrategyLayout.addWidget(stratLabel)
         eStrategyLayout.addWidget(self.eStrategy)
         evolutionLayout.addLayout(eStrategyLayout)
@@ -5078,7 +5209,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eMaxiter = QLineEdit()
         self.eMaxiter.textChanged.connect(self.getGOParameters)
         eMaxiterLabel = QLabel('maxIter')
-        eMaxiterLabel.setFixedWidth(70)
+        eMaxiterLabel.setFixedWidth(90)
         eMaxiterLayout.addWidget(eMaxiterLabel)
         eMaxiterLayout.addWidget(self.eMaxiter)
         evolutionLayout.addLayout(eMaxiterLayout)
@@ -5088,7 +5219,7 @@ class GlobalOptimizationWidget(QWidget):
         self.ePopsize = QLineEdit()
         self.ePopsize.textChanged.connect(self.getGOParameters)
         popsizeLabel = QLabel('popsize: ')
-        popsizeLabel.setFixedWidth(70)
+        popsizeLabel.setFixedWidth(90)
         ePopsizeLayout.addWidget(popsizeLabel)
         ePopsizeLayout.addWidget(self.ePopsize)
         evolutionLayout.addLayout(ePopsizeLayout)
@@ -5098,7 +5229,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eTol = QLineEdit()
         eTolLabel = QLabel('tol: ')
         self.eTol.textChanged.connect(self.getGOParameters)
-        eTolLabel.setFixedWidth(70)
+        eTolLabel.setFixedWidth(90)
         eTolLayout.addWidget(eTolLabel)
         eTolLayout.addWidget(self.eTol)
         evolutionLayout.addLayout(eTolLayout)
@@ -5108,7 +5239,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eAtol = QLineEdit()
         self.eAtol.textChanged.connect(self.getGOParameters)
         eAtolLabel = QLabel('atol: ')
-        eAtolLabel.setFixedWidth(70)
+        eAtolLabel.setFixedWidth(90)
         eAtolLayout.addWidget(eAtolLabel)
         eAtolLayout.addWidget(self.eAtol)
         evolutionLayout.addLayout(eAtolLayout)
@@ -5118,7 +5249,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eMinMutation = QLineEdit()
         self.eMinMutation.textChanged.connect(self.getGOParameters)
         eMinMutationLabel = QLabel('min. mutation: ')
-        eMinMutationLabel.setFixedWidth(70)
+        eMinMutationLabel.setFixedWidth(90)
         eMinMutationLayout.addWidget(eMinMutationLabel)
         eMinMutationLayout.addWidget(self.eMinMutation)
         evolutionLayout.addLayout(eMinMutationLayout)
@@ -5128,7 +5259,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eMaxMutation = QLineEdit()
         self.eMaxMutation.textChanged.connect(self.getGOParameters)
         eMaxMutationLabel = QLabel('max. mutation: ')
-        eMaxMutationLabel.setFixedWidth(70)
+        eMaxMutationLabel.setFixedWidth(90)
         eMaxMutationLayout.addWidget(eMaxMutationLabel)
         eMaxMutationLayout.addWidget(self.eMaxMutation)
         evolutionLayout.addLayout(eMaxMutationLayout)
@@ -5138,7 +5269,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eRecomb = QLineEdit()
         self.eRecomb.textChanged.connect(self.getGOParameters)
         recombLabel = QLabel('recombination: ')
-        recombLabel.setFixedWidth(70)
+        recombLabel.setFixedWidth(90)
         eRecombLayout.addWidget(recombLabel)
         eRecombLayout.addWidget(self.eRecomb)
         evolutionLayout.addLayout(eRecombLayout)
@@ -5148,7 +5279,7 @@ class GlobalOptimizationWidget(QWidget):
         self.ePolish = QCheckBox()
         self.ePolish.stateChanged.connect(self.getGOParameters)
         polishLabel = QLabel('polish')
-        polishLabel.setFixedWidth(70)
+        polishLabel.setFixedWidth(90)
         ePolishLayout.addWidget(polishLabel)
         ePolishLayout.addWidget(self.ePolish)
         evolutionLayout.addLayout(ePolishLayout)
@@ -5159,7 +5290,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eInit.addItems(['latinhypercube', 'sobol', 'halton', 'random'])
         self.eInit.currentIndexChanged.connect(self.getGOParameters)
         initLabel = QLabel('init: ')
-        initLabel.setFixedWidth(70)
+        initLabel.setFixedWidth(90)
         eInitLayout.addWidget(initLabel)
         eInitLayout.addWidget(self.eInit)
         evolutionLayout.addLayout(eInitLayout)
@@ -5170,7 +5301,7 @@ class GlobalOptimizationWidget(QWidget):
         self.eUpdating.addItems(['immediate', 'deferred'])
         self.eUpdating.currentIndexChanged.connect(self.getGOParameters)
         updateLabel = QLabel('updating: ')
-        updateLabel.setFixedWidth(70)
+        updateLabel.setFixedWidth(0)
         eUpdatingLayout.addWidget(updateLabel)
         eUpdatingLayout.addWidget(self.eUpdating)
         evolutionLayout.addLayout(eUpdatingLayout)
@@ -5490,7 +5621,7 @@ class GlobalOptimizationWidget(QWidget):
         self.setTableFit()
         #self.checkscript()
 
-    def calculateSigma(self):
+    def calculateSigma(self): 
         """
                 Purpose: calculate the cost function of the current data fitting iteration
                 :param x_array: current iteration parameters
@@ -5622,9 +5753,7 @@ class GlobalOptimizationWidget(QWidget):
 
         self.sigmaValue.setText(str(min(my_sigma/sdv)))
 
-
-
-    def calculateCost(self):
+    def calculateCost(self): 
         """
         Purpose: calculate the cost function of the current data fitting iteration
         :param x_array: current iteration parameters
@@ -5670,9 +5799,6 @@ class GlobalOptimizationWidget(QWidget):
 
             Rsim = Rsim[pol]
 
-
-
-
             if y_scale == 'log(x)':
                 Rsim = np.log10(Rsim)
                 Rdat = np.log10(Rdat)
@@ -5687,8 +5813,6 @@ class GlobalOptimizationWidget(QWidget):
 
             elif y_scale == 'x':
                 pass
-
-
 
             m = 0
             for b in range(len(xbound)):
@@ -5730,9 +5854,6 @@ class GlobalOptimizationWidget(QWidget):
 
             Rsim = Rsim[pol]
 
-
-
-
             if y_scale == 'log(x)':
                 Rsim = np.log10(Rsim)
                 Rdat = np.log10(Rdat)
@@ -5748,7 +5869,6 @@ class GlobalOptimizationWidget(QWidget):
 
             elif y_scale == 'x':
                 pass
-
 
             m = 0
             for b in range(len(xbound)):
@@ -5772,10 +5892,9 @@ class GlobalOptimizationWidget(QWidget):
 
                 fun = fun + fun_val / m
 
-
         self.costValue.setText(str(fun))  # cost value
 
-    def eventFilter(self, source, event):
+    def eventFilter(self, source, event): 
         """
         Purpose: Allows user to remove fits directly from globalOptimization widget
         :param source: the source of the signal
@@ -5826,11 +5945,10 @@ class GlobalOptimizationWidget(QWidget):
 
         return False
 
-    def _clear_fit(self):
+    def _clear_fit(self): 
         """
         Purpose: Allows the user to clear the fitting parameters
         """
-
         # clears fitting parameters across multiple widgets
         self.sWidget.parameterFit = []
         self.rWidget.sfBsFitParams = []
@@ -5841,7 +5959,7 @@ class GlobalOptimizationWidget(QWidget):
         self.sWidget.setTableVar()
         self.setTableFit()
 
-    def _set_y_scale(self):
+    def _set_y_scale(self): 
         """
         Purpose: set R transformation for progress info!
         """
@@ -5878,18 +5996,18 @@ class GlobalOptimizationWidget(QWidget):
         if rbtn.isChecked() == True:
             self.objective = rbtn.text()
 
-    def _changeShapeWeight(self):
+    def _changeShapeWeight(self): 
         # change the weight of the total variation parameter
         value = self.totalVarWeight.text()
         if value != '':
             self.shape_weight = float(self.totalVarWeight.text())
 
-    def _stop_optimization(self):
+    def _stop_optimization(self): 
         # stops the optimization or data fitting algorithm from running
         global stop
         stop = True
 
-    def changeFitParameters(self):
+    def changeFitParameters(self): 
         """
         Purpose: Takes all the fitting parameters and save them to the new fi
         """
@@ -6017,7 +6135,6 @@ class GlobalOptimizationWidget(QWidget):
         """
         Purpose: update optimization to sampleWidget and update boundaries in globalOptimizationWidget
         """
-
         row = 0
         # first we need to change the boundaries
         for idx in range(len(self.sWidget.currentVal)):
@@ -6133,7 +6250,6 @@ class GlobalOptimizationWidget(QWidget):
 
         self.changeFitParameters()
 
-
         # including scipt implementation
         script, problem, my_error = checkscript(self.sWidget.sample)
         state = self.checkBox.checkState()
@@ -6171,9 +6287,7 @@ class GlobalOptimizationWidget(QWidget):
         self.sWidget.eShiftFromSample(self.sample)
         self.sWidget.setTableEShift()
 
-
-
-    def plot_scan(self):
+    def plot_scan(self): 
         """
         Purpose: plot and compare the data, previous simulation, and new fit all in one graph
         """
@@ -6249,7 +6363,6 @@ class GlobalOptimizationWidget(QWidget):
                 elif self.parent.reflectivity_engine == 'udkm1Dsim':
                     qz, Rsim = self.sample1.reflectivity_udkm(E, qz, s_min=step_size, bShift=background_shift,
                                                              sFactor=scaling_factor, precision=prec, sf_dict=sf_dict1)
-
 
                 Theta = np.arcsin(qz / (E * 0.001013546143)) * 180 / np.pi
                 Rsim = Rsim[pol]
@@ -6376,7 +6489,7 @@ class GlobalOptimizationWidget(QWidget):
                 self.plotWidget.setLabel('bottom', "Energy, E (eV)")
 
             
-    def run_first(self):
+    def run_first(self): 
         """
         Purpose: Run this first before a data fitting process begins. Performs the appropriate initialization
         """
@@ -6384,8 +6497,6 @@ class GlobalOptimizationWidget(QWidget):
         # reset stop parameter
         global stop
         stop = False
-
-
 
         # putting the parameters and their boundaries in the proper format!
         parameters = copy.deepcopy(self.sWidget.parameterFit)
@@ -6439,7 +6550,6 @@ class GlobalOptimizationWidget(QWidget):
 
         self.orbitals = self.sWidget.orbitals
 
-
         if len(parameters) != 0 and len(scans) != 0:
             if idx == 0:
                 # initialize the parameters for optimization saving
@@ -6462,7 +6572,7 @@ class GlobalOptimizationWidget(QWidget):
         self.runButton.setStyleSheet('background: red')
         self.runButton.blockSignals(True)
 
-    def optimizationFinished(self):
+    def optimizationFinished(self): 
         """
         Purpose: Peform this after optimization has finished
         """
@@ -6470,8 +6580,6 @@ class GlobalOptimizationWidget(QWidget):
         # send signal to callback function to stop data fitting
         global stop
         stop = True
-
-
 
         self.update_worker.stop()  # stop update worker
         self.update_thread.quit()  # quit update worker thread
@@ -6498,7 +6606,6 @@ class GlobalOptimizationWidget(QWidget):
         self.sWidget.setTableMag()
         self.sWidget.setTableVar()
 
-
         # make sure that I all the other parameters are returned back to original value after the global optimization
         self.worker = Worker(self)
         self.update_worker = UpdateWorker(self.pWidget)
@@ -6508,8 +6615,7 @@ class GlobalOptimizationWidget(QWidget):
         self.runButton.setStyleSheet('background: green')
         self.runButton.blockSignals(False)
 
-
-    def _run_global_optimization(self):
+    def _run_global_optimization(self): 
         """
         Purpose: Set up threads to run data fitting and update function in parallel
         """
@@ -6597,8 +6703,6 @@ class GlobalOptimizationWidget(QWidget):
             self.thread.start()  # start optimization
             self.update_thread.start()
 
-
-
         else: # these are important checks that makes sure everything is entered properly into the GUI
             if empty_fit:
                 messageBox = QMessageBox()
@@ -6631,7 +6735,7 @@ class GlobalOptimizationWidget(QWidget):
                 messageBox.setText("A logarithmic transformation is being used on an asymmetry scan, which has potential for undefined values (logarithm of negative values). It is suggested to use 'x' as the optimization scale in the Noise Reduction and Optimization workspace.")
                 messageBox.exec()
 
-    def _optimizer(self):
+    def _optimizer(self): 
         """
         Purpose: Run data fitting algorithms
         """
@@ -6751,7 +6855,7 @@ class GlobalOptimizationWidget(QWidget):
 
         return x, fun
 
-    def getGOParameters(self):
+    def getGOParameters(self): 
         """
         Purpose: Retrieve the data fitting algorithm parameters from globalOptimizationWidget
         """
@@ -6899,7 +7003,7 @@ class GlobalOptimizationWidget(QWidget):
         """
         self.setGOParameters()
 
-    def setGOParameters(self):
+    def setGOParameters(self): 
         """
         Purpose: set the algorithm fitting parameters
         """
@@ -7035,23 +7139,23 @@ class GlobalOptimizationWidget(QWidget):
         self.dVtol.blockSignals(False)
         self.dLtol.blockSignals(False)
         """
-    def change_algorithm(self):
+    def change_algorithm(self): 
         # set the proper algorithm widget
         idx = self.algorithmSelect.currentIndex()
         self.goStackLayout.setCurrentIndex(idx)
 
-    def updateScreen(self):
+    def updateScreen(self): 
 
         # shows only the selected scans for fitting
         self.selectedScans.clear()
         for text in self.rWidget.fit:
             self.selectedScans.addItem(text)
 
-    def clearTableFit(self):
+    def clearTableFit(self): 
         # clear the fitting table
         self.fittingParamTable.clear()
 
-    def setTableFit(self):
+    def setTableFit(self): 
         """
         Purpose: Set the fitting table
         """
@@ -7114,7 +7218,7 @@ class GlobalOptimizationWidget(QWidget):
 
         self.fittingParamTable.blockSignals(False)
 
-    def getName(self, p):
+    def getName(self, p): 
         """
         Purpose: create the name to display on data fitting table
         :param p: the parameter
@@ -7197,7 +7301,7 @@ class dataSmoothingWidget(QWidget):
     """
     Purpose: Widget used to smooth data for total variation penalty
     """
-    def __init__(self):
+    def __init__(self): 
         super(dataSmoothingWidget, self).__init__()
 
         self.selectedScans = []  # scans to be used in the data fitting
@@ -7365,7 +7469,7 @@ class dataSmoothingWidget(QWidget):
 
         self.setLayout(pagelayout)
 
-    def fourier_filter(self,x,y, order, window):
+    def fourier_filter(self,x,y, order, window): 
         """
         Purpose: applies fourier filer
         :param x: qz, theta, or E arrays
@@ -7452,7 +7556,7 @@ class dataSmoothingWidget(QWidget):
         #ynew[-2] = last2
         return np.real(ynew)
 
-    def _plot_spline(self):
+    def _plot_spline(self): 
         """
         Purpose: plot the spline interpolation
         :return:
@@ -7552,7 +7656,7 @@ class dataSmoothingWidget(QWidget):
                     self.graph.setLabel('left', "f(R)")
                     self.graph.setLabel('bottom', "Energy, E (eV)")
 
-    def _plot_spline_sub(self):
+    def _plot_spline_sub(self): 
         """
         Purpose: Plot spline subtraction
         :return:
@@ -7648,7 +7752,7 @@ class dataSmoothingWidget(QWidget):
                     self.graph.setLabel('left', "f(R)")
                     self.graph.setLabel('bottom', "Momentum Transfer, qz (1/angstrom)")
 
-    def _plot_filter(self):
+    def _plot_filter(self): 
         """
         Purpose: plot fourier transformed data with filter superimposed
         :return:
@@ -7795,9 +7899,7 @@ class dataSmoothingWidget(QWidget):
                     self.graph.setLabel('left', "f(R)")
                     self.graph.setLabel('bottom', "Spatial Frequency")
 
-
-
-    def _plotGraph(self):
+    def _plotGraph(self): 
         """
         Purpose: plot the data, previous smoothing iteration, and current smoothing iteration
         """
@@ -7959,10 +8061,7 @@ class dataSmoothingWidget(QWidget):
             self.graph.plot(qz, Rprev, pen=pg.mkPen((3, 4), width=2), name='Previous')
             self.graph.plot(qz, Rsmooth, pen=pg.mkPen((1, 4), width=2), name='Current')
 
-
-
-
-    def _setSmoothingVariables(self):
+    def _setSmoothingVariables(self): 
         """
         Purpose: set the smoothing variables depending on the data smoothing methodology used
         """
@@ -8001,8 +8100,7 @@ class dataSmoothingWidget(QWidget):
                 self.splineOrder.blockSignals(True)
                 self.filterWindow.blockSignals(True)
 
-
-    def _selectNoiseReduction(self):
+    def _selectNoiseReduction(self): 
         """
         Purpose: Changes work space to smoothing methodology and checks user input
         """
@@ -8192,16 +8290,14 @@ class dataSmoothingWidget(QWidget):
 
                 self._plotGraph()
 
-    def _changeSmooth(self):
+    def _changeSmooth(self): 
         # changes the smoothing algorithm that we will use
         idx = self.optionBox.currentIndex()
         self.parameterLayout.setCurrentIndex(idx)
         if idx == 0:
             self._plotGraph()  # now we are using a completely different smoothing methodology
 
-
-
-    def _resetVariables(self,data_dict, fit, boundaries):
+    def _resetVariables(self,data_dict, fit, boundaries): 
         # This will be used in the loading in of data as well as when this tab is activated
         self.data_dict = data_dict
         self.boundaries = boundaries
@@ -8240,7 +8336,7 @@ class dataSmoothingWidget(QWidget):
             if len(self.selectedScans) != 1 and self.selectedScans[0] != '':
                 self.scanBox.setCurrentIndex(0)
 
-    def _noiseRemoval(self,x, R, s=1, k=3):
+    def _noiseRemoval(self,x, R, s=1, k=3): 
         """
         Purpose: smoothes data using spline interpolation
         :param x: qz or E numpy array
@@ -8252,11 +8348,11 @@ class dataSmoothingWidget(QWidget):
         tck = interpolate.splrep(x, R, s=s, k=k)
         return interpolate.splev(x, tck, der=0)
 
-class ReflectometryApp(QMainWindow):
+class ReflectometryApp(QMainWindow): 
     """
     Purpose: Main Window
     """
-    def __init__(self):
+    def __init__(self): 
         super().__init__()
         cwd = os.getcwd()
 
@@ -8269,7 +8365,7 @@ class ReflectometryApp(QMainWindow):
         self.nd = 0 # oxidation state
 
         self.sample = ms.slab(1)  # app is initialized and no project is selected
-        self.sample.addlayer(0, 'SrTiO3', 50)
+        self.sample.addlayer(0, 'SrTiO3', 50) #line 460 addlayer(num_layer, formula, thickness)
         self.sample.energy_shift()
 
         # Preferences
@@ -8410,11 +8506,11 @@ class ReflectometryApp(QMainWindow):
         fileMenu.addAction(self.loadReMagX)
 
         # save summary of work as a textfile
-
         self.saveSummary = QAction("&Save Summary", self)
         self.saveSummary.triggered.connect(self._summary)
         fileMenu.addAction(self.saveSummary)
         fileMenu.addSeparator()
+
         # exit the application
         self.exitFile = QAction("&Exit", self)
         self.exitFile.triggered.connect(self._exitApplication)
@@ -8454,7 +8550,7 @@ class ReflectometryApp(QMainWindow):
         helpMenu.addAction(self.tips)
 
 
-    def _loadOrbitals(self):
+    def _loadOrbitals(self): 
         """
         Purpose: Load orbital file
         """
@@ -8479,7 +8575,7 @@ class ReflectometryApp(QMainWindow):
 
         self.activate_tab_1()
 
-    def _saveOrbitals(self):
+    def _saveOrbitals(self): 
         """
         Purpose: Save orbtial file
         :return:
@@ -8506,11 +8602,10 @@ class ReflectometryApp(QMainWindow):
         self.activate_tab_1()
         
 
-    def _newFile(self):
+    def _newFile(self): 
         """
         Purpose: Create a new file
         """
-
         # create a new file or project workspace
         filename, _ = QFileDialog.getSaveFileName()
 
@@ -8528,7 +8623,6 @@ class ReflectometryApp(QMainWindow):
             cont = False
 
         if cont:  # create the new file
-
 
             # random sample input
             sample = ms.slab(2)
@@ -8628,14 +8722,12 @@ class ReflectometryApp(QMainWindow):
             messageBox.setWindowTitle("Invalid file name")
             messageBox.setText("Selected file name or path is not valid. Please select a valid file name.")
             messageBox.exec()
-
         self.activate_tab_1()
 
-    def _loadFile(self):
+    def _loadFile(self): 
         """
         Purpose: Load a new file or project workspace
         """
-
         self.fname, _ = QFileDialog.getOpenFileName(self, 'Open File')  # retrieve file name
 
         fname = self.fname.split('/')[-1]  # used to check file type
@@ -8690,15 +8782,27 @@ class ReflectometryApp(QMainWindow):
 
                 self._sampleWidget.eShift = dict()  # make sure we clear the eshift
                 self._sampleWidget.ffScale = dict()
-                for key in list(self.sample.eShift.keys()):
-                    name = 'ff-' + key
-                    self._sampleWidget.eShift[name] = self.sample.eShift[key]
-                    self._sampleWidget.ffScale[name] = self.sample.ff_scale[key]
+                if isinstance(self.sample.eShift[list(self.sample.eShift.keys())[0]], (int, float)):
+                    for key in list(self.sample.eShift.keys()):
+                        name = 'ff-' + key
+                        self._sampleWidget.eShift[name] = [self.sample.eShift[key], self.sample.eShift[key], self.sample.eShift[key]]
+                        self._sampleWidget.ffScale[name] = [self.sample.ff_scale[key], self.sample.ff_scale[key], self.sample.ff_scale[key]]
 
-                for key in list(self.sample.mag_eShift.keys()):
-                    name = 'ffm-' + key
-                    self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
-                    self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
+                    for key in list(self.sample.mag_eShift.keys()):
+                        name = 'ffm-' + key
+                        self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
+    
+                else:
+                    for key in list(self.sample.eShift.keys()):
+                        name = 'ff-' + key
+                        self._sampleWidget.eShift[name] = self.sample.eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ff_scale[key]
+
+                    for key in list(self.sample.mag_eShift.keys()):
+                        name = 'ffm-' + key
+                        self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
 
                 self._sampleWidget.setTableEShift()
 
@@ -8756,8 +8860,6 @@ class ReflectometryApp(QMainWindow):
                     self._sampleWidget.parameterFit = [fitParams[2][i] for i in idx]
                     self._sampleWidget.currentVal = [fitParams[3][i] for i in idx]
 
-
-
                 self._goWidget.x = fitParams[7]
                 self._goWidget.fun = fitParams[8]
 
@@ -8785,7 +8887,7 @@ class ReflectometryApp(QMainWindow):
                 messageBox.exec()
         self.activate_tab_1()
 
-    def _loadSample(self):
+    def _loadSample(self): 
         """
             Purpose: Load a new file or project workspace
         """
@@ -8793,7 +8895,6 @@ class ReflectometryApp(QMainWindow):
         self.fname, _ = QFileDialog.getOpenFileName(self, 'Open File')  # retrieve file name
 
         fname = self.fname.split('/')[-1]  # used to check file type
-
 
         if self.fname.endswith('.h5') or self.fname.endswith('.all'):  # check for proper file extension
             if self.fname.endswith('.h5') and self.fname != 'demo.h5':
@@ -8811,12 +8912,9 @@ class ReflectometryApp(QMainWindow):
 
                 self.sample.energy_shift()
 
-
                 self._sampleWidget.sample = self.sample
                 self._reflectivityWidget.sample = self.sample
                 self._goWidget.sample = self.sample
-
-
 
                 # loading in the background shift and scaling factor
                 self._reflectivityWidget.bs = dict()
@@ -8829,18 +8927,31 @@ class ReflectometryApp(QMainWindow):
                 #self._reflectivityWidget.selectedScans.clear()
                 #self._reflectivityWidget.whichScan.clear()
 
-
                 self._sampleWidget.eShift = dict()  # make sure we clear the eshift
                 self._sampleWidget.ffScale = dict()
-                for key in list(self.sample.eShift.keys()):
-                    name = 'ff-' + key
-                    self._sampleWidget.eShift[name] = self.sample.eShift[key]
-                    self._sampleWidget.ffScale[name] = self.sample.ff_scale[key]
 
-                for key in list(self.sample.mag_eShift.keys()):
-                    name = 'ffm-' + key
-                    self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
-                    self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
+                if isinstance(self.sample.eShift[list(self.sample.eShift.keys())[0]], (int, float)):
+                    for key in list(self.sample.eShift.keys()):
+                        name = 'ff-' + key
+                        self._sampleWidget.eShift[name] = [self.sample.eShift[key], self.sample.eShift[key], self.sample.eShift[key]]
+                        self._sampleWidget.ffScale[name] = [self.sample.ff_scale[key], self.sample.ff_scale[key], self.sample.ff_scale[key]]
+
+                    for key in list(self.sample.mag_eShift.keys()):
+                        name = 'ffm-' + key
+                        self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
+    
+                else:
+                    for key in list(self.sample.eShift.keys()):
+                        name = 'ff-' + key
+                        self._sampleWidget.eShift[name] = self.sample.eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ff_scale[key]
+
+                    for key in list(self.sample.mag_eShift.keys()):
+                        name = 'ffm-' + key
+                        self._sampleWidget.eShift[name] = self.sample.mag_eShift[key]
+                        self._sampleWidget.ffScale[name] = self.sample.ffm_scale[key]
+
 
                 self._sampleWidget.setTableEShift()
 
@@ -8855,7 +8966,6 @@ class ReflectometryApp(QMainWindow):
                 # change this for an arbitrary sample model
                 self._sampleWidget.layerBox.addItems(layerList)
 
-
                 # for now let's clear all the fitting parameters
                 # self._reflectivityWidget.sfBsFitParams = fitParams[0]
                 self._reflectivityWidget.sfBsFitParams = []
@@ -8865,9 +8975,7 @@ class ReflectometryApp(QMainWindow):
 
                 # checks to make sure that saved scans are still in the dataset
                 # selectedScans = [scan for scan in fitParams[4] if scan in list(self.data_dict.keys())]
-
                 #self._reflectivityWidget.fit = []
-
 
                 # self._reflectivityWidget.bounds = fitParams[5]
                 self._reflectivityWidget.bounds = []
@@ -8899,13 +9007,13 @@ class ReflectometryApp(QMainWindow):
                 messageBox.setText(
                     "File type not supported by the application. Workspace file must be an HDF5 file type. The HDF5 architecture can be found in the user manual. ")
                 messageBox.exec()
+
         self.activate_tab_1()
 
-    def _saveFile(self):
+    def _saveFile(self): 
         """
         Purpose: Save the current project space
         """
-
         filename = self.fname  # retrieve the current file name
 
         if not(filename.endswith('demo.h5')):  # makes sure the current workspace is not the demo
@@ -8935,7 +9043,7 @@ class ReflectometryApp(QMainWindow):
 
 
         self.activate_tab_1()
-    def _saveAsFile(self):
+    def _saveAsFile(self): 
         """
         Purpose: Save project worspace to a specified name
         """
@@ -8972,7 +9080,7 @@ class ReflectometryApp(QMainWindow):
             ds.saveAsFileHDF5(self.fname, self.sample, data_dict, sim_dict, fitParams, optParams, self.version)  # saving
         self.activate_tab_1()
 
-    def _saveSimulation(self):
+    def _saveSimulation(self): 
         """
         Purpose: Calculate and save the simulation to the current file
         """
@@ -9000,7 +9108,7 @@ class ReflectometryApp(QMainWindow):
             if type(sim_dict) is not list:
                 ds.saveSimulationHDF5(self.fname, sim_dict, self.version)
 
-    def _saveSample(self):
+    def _saveSample(self): 
         """
         Purpose: Save the sample information from the current project space
 
@@ -9014,7 +9122,7 @@ class ReflectometryApp(QMainWindow):
         ds.WriteSampleHDF5(self.fname, self.sample, self.version)
         self.activate_tab_1()
 
-    def _importDataSet(self):
+    def _importDataSet(self): 
         """
         Purpose: import data from h5 filetype
         :return:
@@ -9035,7 +9143,7 @@ class ReflectometryApp(QMainWindow):
         self._noiseWidget.smoothScans = copy.copy(self.data_dict)
         self.activate_tab_1()
 
-    def _loadReMagX(self):
+    def _loadReMagX(self): 
         """
         Purpose: import data from a ReMagX file type
         """
@@ -9074,7 +9182,7 @@ class ReflectometryApp(QMainWindow):
             messageBox.setText("Please select a file with .all extension!")
             messageBox.exec()
         self.activate_tab_1()
-    def _summary(self):
+    def _summary(self): 
         """
         Purpose: save summary of project worspace as a textfile
         """
@@ -9205,11 +9313,11 @@ class ReflectometryApp(QMainWindow):
                 file.write("localSearch = %s \n\n" % globOpt['dual annealing'][6])
                 file.close()
 
-    def _exitApplication(self):
+    def _exitApplication(self): 
         # exit the program
         sys.exit()
 
-    def _script(self):
+    def _script(self): 
         """
         Purpose: initialize the script widget
         """
@@ -9220,7 +9328,7 @@ class ReflectometryApp(QMainWindow):
         script.close()
         checkscript(self.sample)
 
-    def _showFormFactor(self):
+    def _showFormFactor(self): 
         """
         Purpose: initialize the form factor widget
         """
@@ -9231,7 +9339,7 @@ class ReflectometryApp(QMainWindow):
         formFactor.exec_()
         formFactor.close()
 
-    def _preferences(self):
+    def _preferences(self): 
         """
         Initialize the preferences widget
         """
@@ -9245,10 +9353,7 @@ class ReflectometryApp(QMainWindow):
         self.reflectivity_engine = userinput[0]
         self.temperature = userinput[1]
 
-
-
-
-    def _license(self):
+    def _license(self): 
         """
         Purpose: demonstrate license if ever obtained
         """
@@ -9259,14 +9364,14 @@ class ReflectometryApp(QMainWindow):
         # no current implementation
 
 
-    def _tips(self):
+    def _tips(self): 
         license = tipsWidget()
         license.show()
         license.exec_()
         license.close()
         # no current implementation
 
-    def _help(self):
+    def _help(self): 
         """
         Purpose: provide user document of how to use application
         """
@@ -9277,8 +9382,7 @@ class ReflectometryApp(QMainWindow):
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
-
-    def activate_tab_1(self):
+    def activate_tab_1(self): 
         # sample workspace
         self.sample = copy.deepcopy(self._sampleWidget._createSample())  # get previous sample information from table
         self._reflectivityWidget.sample = self.sample  # reset sample information
@@ -9294,7 +9398,7 @@ class ReflectometryApp(QMainWindow):
         self.progressButton.setStyleSheet("background-color: pink")
         self.stackedlayout.setCurrentIndex(0)
 
-    def activate_tab_2(self):
+    def activate_tab_2(self): 
         # reflectivity workspace
 
         not_empty, equal_elements = self._sampleWidget.check_element_number()
@@ -9328,7 +9432,7 @@ class ReflectometryApp(QMainWindow):
                 messageBox.setText("Each layer must have the same number of elements defined in each layer. A dummy variable can be used to meet these requirements (A,D,E,G,J,L,M,Q,R,T,X,Z). ")
                 messageBox.exec()
 
-    def activate_tab_3(self):
+    def activate_tab_3(self): 
         # data smoothing workspace
         not_empty, equal_elements = self._sampleWidget.check_element_number()
         if not_empty and equal_elements:
@@ -9357,7 +9461,7 @@ class ReflectometryApp(QMainWindow):
                 messageBox.setWindowTitle("Invalid Sample Definition")
                 messageBox.setText("Each layer must have the same number of elements defined in each layer. A dummy variable can be used to meet these requirements (A,D,E,G,J,L,M,Q,R,T,X,Z). ")
                 messageBox.exec()
-    def activate_tab_4(self):
+    def activate_tab_4(self): 
         # global optimization workspace
         not_empty, equal_elements = self._sampleWidget.check_element_number()
         if not_empty and equal_elements:
@@ -9386,7 +9490,7 @@ class ReflectometryApp(QMainWindow):
                 messageBox.setText("Each layer must have the same number of elements defined in each layer. A dummy variable can be used to meet these requirements (A,D,E,G,J,L,M,Q,R,T,X,Z). ")
                 messageBox.exec()
 
-    def activate_tab_5(self):
+    def activate_tab_5(self): 
         # progress workspace
         not_empty, equal_elements = self._sampleWidget.check_element_number()
         if not_empty and equal_elements:
@@ -9412,8 +9516,6 @@ class ReflectometryApp(QMainWindow):
             orbitals = self._sampleWidget.orbitals
 
             self._progressWidget.sf_dict = copy.copy(self._sampleWidget.sf_dict)
-
-
         else:
             if not(not_empty):
                 messageBox = QMessageBox()
@@ -9427,7 +9529,7 @@ class ReflectometryApp(QMainWindow):
                 messageBox.exec()
 
 
-class progressWidget(QWidget):
+class progressWidget(QWidget): 
     """
     Purpose: Used to update the user of the data fitting progress
     """
@@ -9537,7 +9639,6 @@ class progressWidget(QWidget):
         pagelayout.addWidget(self.plotWidget)
 
         self.setLayout(pagelayout)
-
 
     def check_script_state(self, state):
         # set state of the script
@@ -9850,8 +9951,6 @@ class progressWidget(QWidget):
                     fun_val = 0
                     xbound = self.sBounds[i]
                     weights = self.sWeights[i]
-
-
 
                     background_shift = float(backS[name])
                     scaling_factor = float(scaleF[name])
@@ -10358,12 +10457,11 @@ class progressWidget(QWidget):
         self.plotProgress()
 
 
-
-class showFormFactors(QDialog):
+class showFormFactors(QDialog):  
     """
     Purpose: plot selected form factors
     """
-    def __init__(self, sample):
+    def __init__(self, sample): 
         super().__init__()
         pageLayout = QVBoxLayout()  # page layout
         self.setWindowTitle('Form Factors')
@@ -10372,7 +10470,7 @@ class showFormFactors(QDialog):
         self.selectedff = []
         self.selectedffm = []
 
-        self.ff = mm.ff
+        self.ff = mm.ff #picking form factors from data dict
         self.ffm = mm.ffm
 
         # buttons to choose structural or magnetic form factors
@@ -10516,7 +10614,7 @@ class showFormFactors(QDialog):
 
         self.setLayout(pageLayout)
 
-    def _plot_ff(self):
+    def _plot_ff(self): 
         """
         Purpose: plot the structural form factors
         """
@@ -10530,23 +10628,46 @@ class showFormFactors(QDialog):
 
         # plot the form factors
         for idx, key in enumerate(self.selectedff):
-            re = self.ff[key][:, 1]
-            E = self.ff[key][:, 0]
-            im = self.ff[key][:, 2]
+            if len(self.ff[key][0, :]) == 9:
+                re = np.array(self.ff[key][:, 3:5])
+                E = np.array(self.ff[key][:, 0:2])
+                im = np.array(self.ff[key][:, 6:8])
+            else:
+                re = np.stack((self.ff[key][:, 1], self.ff[key][:, 1], self.ff[key][:, 1]), axis = 1)
+                E = np.stack((self.ff[key][:, 0], self.ff[key][:, 0], self.ff[key][:, 0]), axis = 1)
+                im = np.stack((self.ff[key][:, 2], self.ff[key][:, 2], self.ff[key][:, 2]), axis = 1)
 
             if self.real.checkState() != 0 and self.im.checkState() != 0:
 
-                my_name = 'r: ' + key
-                self.structPlot.plot(E, re, pen=pg.mkPen((idx*2, n*2+1), width=2), name=my_name)
-                my_name = 'i: ' + key
-                self.structPlot.plot(E, im, pen=pg.mkPen((idx*2+1, n*2+1), width=2), name=my_name)
-            elif self.real.checkState() != 0:
-                my_name = 'r: ' + key
-                self.structPlot.plot(E, re, pen=pg.mkPen((idx, n+1), width=2), name=my_name)
-            elif self.im.checkState() != 0:
-                my_name = 'i: ' + key
-                self.structPlot.plot(E, im, pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_x'
+                self.structPlot.plot(E[:, 0], re[:, 0], pen=pg.mkPen((idx*2, n*2+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_y'
+                self.structPlot.plot(E[:, 1], re[:, 1], pen=pg.mkPen((idx*2, n*2+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_z'
+                self.structPlot.plot(E[:, 2], re[:, 2], pen=pg.mkPen((idx*2, n*2+1), width=2), name=my_name)
 
+                my_name = 'i: ' + key + '_x'
+                self.structPlot.plot(E[:, 0], im[:, 0], pen=pg.mkPen((idx*2+1, n*2+1), width=2), name=my_name)
+                my_name = 'i: ' + key + '_y'
+                self.structPlot.plot(E[:, 1], im[:, 1], pen=pg.mkPen((idx*2+1, n*2+1), width=2), name=my_name)
+                my_name = 'i: ' + key + '_z'
+                self.structPlot.plot(E[:, 2], im[:, 2], pen=pg.mkPen((idx*2+1, n*2+1), width=2), name=my_name)
+
+            elif self.real.checkState() != 0:
+                my_name = 'r: ' + key + '_x'
+                self.structPlot.plot(E[:, 0], re[:, 0], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_y'
+                self.structPlot.plot(E[:, 1], re[:, 1], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_z'
+                self.structPlot.plot(E[:, 2], re[:, 2], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+
+            elif self.im.checkState() != 0:
+                my_name = 'r: ' + key + '_x'
+                self.structPlot.plot(E[:, 0], im[:, 0], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_y'
+                self.structPlot.plot(E[:, 1], im[:, 1], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
+                my_name = 'r: ' + key + '_x'
+                self.structPlot.plot(E[:, 2], im[:, 2], pen=pg.mkPen((idx, n+1), width=2), name=my_name)
         self.structPlot.setLabel('left', "Form Factor")
         self.structPlot.setLabel('bottom', "Energy, (eV))")
 
@@ -10565,12 +10686,11 @@ class showFormFactors(QDialog):
 
         # plot the form factors
         for idx, key in enumerate(self.selectedffm):
-            re = self.ffm[key][:, 1]
-            E = self.ffm[key][:, 0]
-            im = self.ffm[key][:, 2]
+            re = np.array(self.ffm[key][:, 1])
+            E = np.array(self.ffm[key][:, 0])
+            im = np.array(self.ffm[key][:, 2])
 
             if self.real.checkState() != 0 and self.im.checkState() != 0:
-
                 my_name = 'r: ' + key
                 self.magPlot.plot(E, re, pen=pg.mkPen((idx*2, n*2+1), width=2), name=my_name)
                 my_name = 'i: ' + key
@@ -10579,6 +10699,7 @@ class showFormFactors(QDialog):
                 my_name = 'r: ' + key
                 self.magPlot.plot(E, re, pen=pg.mkPen((idx, n), width=2), name=my_name)
 
+
             elif self.im.checkState() != 0:
                 my_name = 'i: ' + key
                 self.magPlot.plot(E, im, pen=pg.mkPen((idx+1, n), width=2), name=my_name)
@@ -10586,7 +10707,7 @@ class showFormFactors(QDialog):
         self.magPlot.setLabel('left', "Form Factor")
         self.magPlot.setLabel('bottom', "Energy, (eV))")
 
-    def _selectff(self):
+    def _selectff(self): 
         """
         Purpose: user has selected a form factor to plot
         """
@@ -10596,7 +10717,7 @@ class showFormFactors(QDialog):
             self.selectedff.append(item)
         self._plot_ff()
 
-    def _selectffm(self):
+    def _selectffm(self): 
         """
         Purpose: user has selected a magnetic form factor to plot
         """
@@ -10606,7 +10727,7 @@ class showFormFactors(QDialog):
             self.selectedffm.append(item)
         self._plot_ffm()
 
-    def _removeff(self):
+    def _removeff(self): 
         """
         Purpose: remove structural form fator from being plotted
         """
@@ -10617,7 +10738,7 @@ class showFormFactors(QDialog):
             self.selectedff.pop(idx)
             self._plot_ff()
 
-    def _removeffm(self):
+    def _removeffm(self): 
         """
         Purpose: remove magnetic form factor from being plotted
         """
@@ -10628,7 +10749,7 @@ class showFormFactors(QDialog):
             self.selectedff.pop(idx)
             self._plot_ffm()
 
-    def _structural(self):
+    def _structural(self): 
         """
         Purpose: activate structural form factor workspace
         """
@@ -10636,7 +10757,7 @@ class showFormFactors(QDialog):
         self.structButton.setStyleSheet('background: magenta')
         self.stackLayout.setCurrentIndex(0)
 
-    def _magnetic(self):
+    def _magnetic(self): 
         """
         Purpose: activate magnetic form factor workspace
         """
@@ -10644,7 +10765,7 @@ class showFormFactors(QDialog):
         self.structButton.setStyleSheet('background: pink')
         self.stackLayout.setCurrentIndex(1)
 
-class Preferences(QDialog):
+class Preferences(QDialog): 
     """
     Create Widget to select preferences
     """
@@ -10715,8 +10836,7 @@ class Preferences(QDialog):
         self.val = [self.reflectivity_engine, self.temperature]  # reset layer values
 
 
-
-class scriptWidget(QDialog):
+class scriptWidget(QDialog): 
     """
     Purpose: Initialize script window to allow user to perform special operations
     """
@@ -10849,11 +10969,11 @@ class scriptWidget(QDialog):
             messageBox.exec()
 
 
-class LoadingScreen(QDialog):
+class LoadingScreen(QDialog): 
     """
     Purpose: Provides progress of saving simulation
     """
-    def __init__(self, parent,sample, sim_dict, rWidget, sWidget, s_min, precision, Eprecision):
+    def __init__(self, parent,sample, sim_dict, rWidget, sWidget, s_min, precision, Eprecision): 
         super().__init__()
         self.parent = parent
         self.setWindowTitle('Saving Simulation')
@@ -10927,7 +11047,7 @@ class LoadingScreen(QDialog):
 
         self.accept()
 
-def checkbracket(s, i=0, cnt=0):
+def checkbracket(s, i=0, cnt=0): 
     # checks to make sure the brackets are balanced
     if i == len(s): return cnt == 0
     if cnt < 0: return False
@@ -10936,7 +11056,7 @@ def checkbracket(s, i=0, cnt=0):
     return checkbracket(s, i + 1, cnt)
 
 """
-def checkbracket(myStr):
+def checkbracket(myStr): 
     # checks to make sure that the brackets are maintained
     open_list = ["[", "{", "("]
     close_list = ["]", "}", ")"]
@@ -10959,7 +11079,7 @@ def checkbracket(myStr):
         return True
 """
 
-def checkscript(sample, fname=''):
+def checkscript(sample, fname=''): 
 
     if fname == '':
         script = os.getcwd() + '/DATA/default_script.txt'
@@ -11452,14 +11572,14 @@ def checkscript(sample, fname=''):
     return my_script, problem, my_error
 
 
-def isfloat(num):
+def isfloat(num): 
     try:
         float(num)
         return True
     except ValueError:
         return False
 
-class licenseWidget(QDialog):
+class licenseWidget(QDialog): 
     """
     Purpose: Initialize script window to allow user to perform special operations
     """
@@ -11491,7 +11611,7 @@ class licenseWidget(QDialog):
 
         self.setLayout(pagelayout)
 
-class tipsWidget(QDialog):
+class tipsWidget(QDialog): 
     """
     Purpose: Initialize script window to allow user to perform special operations
     """
@@ -11523,7 +11643,7 @@ class tipsWidget(QDialog):
 
         self.setLayout(pagelayout)
 
-def is_float(string):
+def is_float(string): 
     try:
         float(string)
         return True

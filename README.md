@@ -50,18 +50,43 @@ Tested on Ubuntu 22.04
 ### Installation
 
 #### 1. Clone GO-RXR from the main branch in this repository:
+Scroll till the green code button is visible and copy the HTTPS.
 ```bash
-$ git clone https://github.com/lucaskorol21/GO-RXR.git
+$ git clone <paste the HTTPS>
 ```
 
-#### 2. Prerequisites (Tested with Python 3.10.12)
-
+#### 2a. Prerequisites (Tested with Python 3.10.12)
+If you have these packages installed you may ignore the following and proceed to 2b.
+Install python3-virtualenv
+```bash
+$ sudo apt install python3-virtualenv
+```
+#### 2b. Prerequisites (Tested with Python 3.10.12)
+Move into the repository if your not already in it:
+```bash
+$ cd GO-RXR/
+```
 We recommend creating a virtual enviromnment:
 
 ```bash
-$ virtualvenv venv-go-rxr
+$ virtualenv venv-go-rxr
 ```
+To activate the virtual environment
+move into the virtual environment directory
+```bash
+$ cd venv-go-rxr
+```
+move into the bin directory
+```bash
+$ cd bin
+```
+now run
+```bash
+$ source activate
+```
+note to deactivate type in deactivate and hit enter
 
+Move back into GO-RXR/
 Install the python libraries by running the setup file:
 
 ```bash
@@ -69,6 +94,9 @@ $ python setup.py install
 ```
 
 If the setup file does not work, then the libraries in the `requirements.txt` file can be installed.
+```bash
+$ pip install -r requirements.txt
+```
 
 ##### For `matplotlib`, ensure that you have `Pilow` installed
 ```bash
@@ -123,6 +151,21 @@ $ sudo chown -R $USER .
 # Try running the installation command again
 $ python setup_reflectivity.py install
 ```
+#### 4. To set up use of tutorial
+Go into TESTS/ directory
+```bash
+$ cd TESTS/
+```
+Run the run_all_tests.py file
+```bash
+$ python run_all_tests.py
+```
+#### 4. To run the GUI
+Go into GO-RXR/ directory
+```bash
+$ python GUI_GO.py
+```
+
 
 ## Windows  (Tested with Python 3.7 32-bit)
 

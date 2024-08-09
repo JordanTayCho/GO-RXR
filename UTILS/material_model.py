@@ -24,7 +24,18 @@ scipy (version 1.7.1) - This library is used to interpolate the form factors for
 
 os - used to access database of atomic masses
 """
+"""
+Library: material_model
+Version: 0.4
+Author: Jordan Cho
+Institution: University of Saskatchewan
+Last Updated: Aug 9, 2024
+Python: version 3.7
 
+Update: Changed to accomodate for three dimensional form factor values and energy shifts. form_factor was modified for 3-D.
+        Added form_factor_m(), which behaves as form_factor() except only uses one dimension. 
+
+"""
 from UTILS.material_structure import *  # version
 import pickle
 from numba import *
@@ -53,7 +64,7 @@ with open(os.path.join(ROOT_DIR, 'DATA/form_factor_magnetic.pkl'),'rb') as f:
         ffm[key] = ffm_temp[key]['Data']
 f.close()
 
-def change_ff(ffname, value):
+def change_ff(ffname, value): #As long as the value that is loaded is [ff_x, ff_y, ff_z]
     # changes the value of a form factor
     ff[ffname] = value
 
@@ -73,7 +84,6 @@ def _use_given_ff(directory):
 
     struct_names = []  # stores list of structural form factors
     mag_names = []  # stores list of magnetic form factors
-
 
     # loops through project directory for form factor files
     for file in os.listdir(directory):
@@ -98,10 +108,41 @@ def _use_given_ff(directory):
 
     return struct_names, mag_names
 
-def form_factor(f,E):
+def form_factor(f,E): #Used for 3-Dim Form Factors
 
     """
-    Purpose: Determines form factors with energy E using linear interpolation
+    Purpose: Determines form factors with energy E using linear interpolation, when the form factor has x, y, and z components
+    :param f: List of form factors of form np.array([E, f_real, f_imag]) where E, f_real, and f_imag are arrays
+    :param E: Float or list of desired energy
+    :return: Array that contains the real and imaginary values of the form factor at energy E: f=[real, imaginary].
+             If user inputs an array of energies [E_1,E_2,..,E_n] the output will be [[fr_1,fi_1],[fr_2,fi_2],...,[fr_n,fi_n]].
+             Note - All values are real and are converted to imaginary numbers elsewhere.
+    """
+
+    # Linear interpolation
+    frx = interpolate.interp1d(f[:,0],f[:,3])  # real component
+    fix = interpolate.interp1d(f[:,0],f[:,6])  # imaginary component
+
+    fry = interpolate.interp1d(f[:,1],f[:,4])  # real component
+    fiy = interpolate.interp1d(f[:,1],f[:,7])  # imaginary component
+
+    frz = interpolate.interp1d(f[:,2],f[:,5])  # real component
+    fiz = interpolate.interp1d(f[:,2],f[:,8])  # imaginary component
+
+    Ex = E[0]
+    Ey = E[1]
+    Ez = E[2]
+
+    if isinstance(Ex, list) or isinstance(Ex, np.ndarray):  # handle multiple energy case (energy scan)
+        F = np.array([np.array([[frx(Ex[x]), fix(Ex[x])], [fry(Ey[x]), fiy(Ey[x])], [frz(Ez[x]), fiz(Ez[x])]]) if Ex[x] > f[0, 0] and Ex[x] < f[-1, 0] else np.array([[0,0], [0, 0], [0, 0]]) for x in range(len(Ex))])
+    else:  # handle single energy case (reflectivity scan)
+        F = np.array([[frx(Ex), fix(Ex)], [fry(Ey), fiy(Ey)], [frz(Ez), fiz(Ez)]]) if Ex>f[0,0] and Ex<f[-1,0] else np.array([[0,0], [0, 0], [0, 0]])
+
+    return F
+
+def form_factor_m(f,E): #Used for 1-Dim Form Factors
+    """
+    Purpose: Determines form factors with energy E using linear interpolation, when there is a single form factor
     :param f: List of form factors of form np.array([E, f_real, f_imag]) where E, f_real, and f_imag are arrays
     :param E: Float or list of desired energy
     :return: Array that contains the real and imaginary values of the form factor at energy E: f=[real, imaginary].
@@ -117,9 +158,7 @@ def form_factor(f,E):
         F = np.array([np.array([fr(x), fi(x)]) if x > f[0, 0] and x < f[-1, 0] else np.array([0, 0]) for x in E])
     else:  # handle single energy case (reflectivity scan)
         F = np.array([fr(E), fi(E)]) if E>f[0,0] and E<f[-1,0] else np.array([0,0])
-
     return F
-
 
 
 
@@ -133,18 +172,21 @@ def find_form_factor(element, E, mag):
     """
     #global ffm
     #global ff
-
+    mag_keys = list(ffm.keys())
     if mag:  # magnetic form factor
         mag_keys = list(ffm.keys())
         if element not in mag_keys:
             raise NameError(element + " not found in magnetic form factors")
-        F = form_factor(ffm[element],E)
+        F = form_factor_m(ffm[element],E)
     else:  # non-magnetic form factor
         struc_keys = list(ff.keys())
         if element not in struc_keys:
             raise NameError(element + " not found in structural form factors")
-        F = form_factor(ff[element], E)
-
+        if len(ff[element][0, :]) == 9:
+            F = form_factor(ff, E)
+        else: #Duplicate it to be an isotropic case where ff-x = ff-y = ff-z
+            ff_new = np.array([ [ff[element][k, 0], ff[element][k, 0], ff[element][k, 0], ff[element][k, 1],ff[element][k, 1],ff[element][k, 1],ff[element][k, 2], ff[element][k, 2], ff[element][k, 2]] for k in range(len(ff[element][:, 0]))])
+            F = form_factor(ff_new, E)
     return F
 
 def MOC(rho, sfm, E, n):
@@ -163,8 +205,6 @@ def MOC(rho, sfm, E, n):
     k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
 
     constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
-
-
 
     elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
 
@@ -189,33 +229,79 @@ def magnetic_optical_constant(rho, sfm, E):
     :return: delta_m - magneto-optic dispersive component
              beta_m  - magneto-optic absorptive component
     """
+    key = list(sfm.keys())
+    if (sfm == {}): #default - initialization
+        # Constants
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
 
-    # Constants
-    h = 4.135667696e-15  # Plank's Constant [eV s]
-    c = 2.99792450e10  # Speed of light in vacuum [cm/s]
-    re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
-    avocado = 6.02214076e23  # avagoadro's number
-    k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
 
-    constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
+        f1 = 0  # for dispersive component computation
+        f2 = 0  # for absorptive component computation
 
-    f1 = 0  # for dispersive component computation
-    f2 = 0  # for absorptive component computation
+        elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
+        # Computes the dispersive and absorptive components of the index of refraction
+        for element in elements:
+            f1 = f1 + 0 * rho[element]
+            f2 = f2 + 0 * rho[element]
 
-    elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
+        delta_m = constant * f1  # dispersive component
+        beta_m = constant * f2  # absorptive component
 
-    # Computes the dispersive and absorptive components of the index of refraction
-    for element in elements:
-        f1 = f1 + sfm[element][0] * rho[element]
-        f2 = f2 + sfm[element][1] * rho[element]
+    elif len(sfm[key[0]]) == 3: #3-Dim case
 
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
 
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
 
-    delta_m = constant * f1  # dispersive component
-    beta_m = constant * f2  # absorptive component
+        elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
+        if len(elements)>0:
+            f1 = np.zeros((3, len(rho[elements[0]])))  # for dispersive component computation
+            f2 = np.zeros((3, len(rho[elements[0]])))  # for absorptive component computation
+        else:
+            f1 = np.array([0, 0, 0])
+            f2 = np.array([0, 0, 0])
+        # Computes the dispersive and absorptive components of the index of refraction
+        for element in elements:
+            f1 = f1 + np.array([np.array(j)*rho[element] for j in [sfm[element][0][0], sfm[element][1][0], sfm[element][2][0]]])
+            f2 = f2 + np.array([np.array(j)*rho[element] for j in [sfm[element][0][1], sfm[element][1][1], sfm[element][2][1]]])
+        
+        delta_m = constant * f1  # dispersive component
+        beta_m = constant * f2  # absorptive component
 
+    else:   #1-Dim Case
+        # Constants
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
+
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
+
+        f1 = 0  # for dispersive component computation
+        f2 = 0  # for absorptive component computation
+
+        elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
+
+        # Computes the dispersive and absorptive components of the index of refraction
+        for element in elements:
+            f1 = f1 + sfm[element][0] * rho[element]
+            f2 = f2 + sfm[element][1] * rho[element]
+
+        delta_m = constant * f1  # dispersive component
+        beta_m = constant * f2  # absorptive component
 
     return delta_m, beta_m
+
 
 def IoR(rho,sf,E):
     """
@@ -230,17 +316,15 @@ def IoR(rho,sf,E):
     re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
     avocado = 6.02214076e23  # avagoadro's number
     k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
-
-    constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
+    constant = np.array(2 * np.pi * re * (avocado) / (k0 ** 2))  # constant for density sum
 
     elements = list(rho.keys())  # retrieves all the magnetic elements in the layer
-    delta = np.array([np.zeros(len(rho[elements[0]])) for x in range(len(E))])  # initialization
-    beta = np.array([np.zeros(len(rho[elements[0]])) for x in range(len(E))])  # initialization
-
+    delta = np.array([np.zeros((3, len(rho[elements[0]]))) for x in range(len(E))])
+    beta = np.array([np.zeros((3, len(rho[elements[0]]))) for x in range(len(E))])
     # Computes the dispersive and absorptive components of the index of refraction using list comprehensions
     for element in elements:
-        delta = delta + np.array([constant[x]*sf[element][x, 0] * rho[element] for x in range(len(sf[element][:, 0]))])
-        beta = beta + np.array([constant[x] * sf[element][x, 1] * rho[element] for x in range(len(sf[element][:, 1]))])
+        delta = delta + np.array([constant[x]*np.array([ np.array(j)*np.array(rho[element]) for j in sf[element][x][:, 0]]) for x in range(len(E))])
+        beta = beta   + np.array([constant[x]*np.array([ np.array(j)*np.array(rho[element]) for j in sf[element][x][:, 1]]) for x in range(len(E))])
     return delta, beta
 
 def index_of_refraction(rho, sf, E):
@@ -252,36 +336,96 @@ def index_of_refraction(rho, sf, E):
     :return: delta - dispersive component of the refractive index
              beta - absorptive component of the refractive index
     """
+    key = list(sf.keys())
+    if sf == {}: #Default case - initialization
+        mag = False  # statement for retrieval of non=magnetic form factors
+        # Constants
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        #h = 4.1357e-15
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        #c = 2.9979e10
+        #re = 2.8179e-13
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        #avocado = 6.0221e23
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
 
-    mag = False  # statement for retrieval of non=magnetic form factors
-    # Constants
-    h = 4.135667696e-15  # Plank's Constant [eV s]
-    #h = 4.1357e-15
-    c = 2.99792450e10  # Speed of light in vacuum [cm/s]
-    #c = 2.9979e10
-    #re = 2.8179e-13
-    re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
-    avocado = 6.02214076e23  # avagoadro's number
-    #avocado = 6.0221e23
-    k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
-    constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
+        f1 = 0  # dispersive form factor
+        f2 = 0  # absorptive form factor
 
-    f1 = 0  # dispersive form factor
-    f2 = 0  # absorptive form factor
+        elements = list(rho.keys())  # retrieves element symbols within layer
+        """
+        F = dict()  # dictionary used to contain the form factors
+        for element in elements:
+            F[ element] = find_form_factor(sf[element],E, mag)
+        """
+        #  Computes the dispersive and absorptive components
+        for element in elements:
+            f1 = f1 + sf[element][0] * rho[element]
+            f2 = f2 + sf[element][1] * rho[element]
 
-    elements = list(rho.keys())  # retrieves element symbols within layer
-    """
-    F = dict()  # dictionary used to contain the form factors
-    for element in elements:
-        F[ element] = find_form_factor(sf[element],E, mag)
-    """
-    #  Computes the dispersive and absorptive components
-    for element in elements:
-        f1 = f1 + sf[element][0] * rho[element]
-        f2 = f2 + sf[element][1] * rho[element]
+        delta = f1*constant  # dispersive component
+        beta = f2*constant  # absorptive component
+    elif len(sf[key[0]]) == 3:  #3-Dim
+        mag = False  # statement for retrieval of non=magnetic form factors
+        # Constants
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        #h = 4.1357e-15
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        #c = 2.9979e10
+        #re = 2.8179e-13
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        #avocado = 6.0221e23
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
 
-    delta = f1*constant  # dispersive component
-    beta = f2*constant  # absorptive component
+
+        elements = list(rho.keys())  # retrieves element symbols within layer
+        f1 = np.zeros((3, len(rho[elements[0]]))) # dispersive form factor
+        f2 = np.zeros((3, len(rho[elements[0]])))  # absorptive form factor
+        """
+        F = dict()  # dictionary used to contain the form factors
+        for element in elements:
+            F[ element] = find_form_factor(sf[element],E, mag)
+        """
+        #  Computes the dispersive and absorptive components
+        for element in elements:
+            f1 = f1 + np.array([np.array(j)*rho[element] for j in [sf[element][0][0], sf[element][1][0], sf[element][2][0]]])
+            f2 = f2 + np.array([np.array(j)*rho[element] for j in [sf[element][0][1], sf[element][1][1], sf[element][2][1]]])
+        delta = np.array(constant)*f1  # dispersive component
+        beta = f2*constant  # absorptive component
+    else: #1-Dim case
+        mag = False  # statement for retrieval of non=magnetic form factors
+        # Constants
+        h = 4.135667696e-15  # Plank's Constant [eV s]
+        #h = 4.1357e-15
+        c = 2.99792450e10  # Speed of light in vacuum [cm/s]
+        #c = 2.9979e10
+        #re = 2.8179e-13
+        re = 2.817940322719e-13  # Classical electron radius (Thompson scattering length) [cm]
+        avocado = 6.02214076e23  # avagoadro's number
+        #avocado = 6.0221e23
+        k0 = 2 * np.pi * E / (h * c)  # photon wavenumber in vacuum [1/cm]
+        constant = 2 * np.pi * re * (avocado) / (k0 ** 2)  # constant for density sum
+
+        f1 = 0  # dispersive form factor
+        f2 = 0  # absorptive form factor
+
+        elements = list(rho.keys())  # retrieves element symbols within layer
+        """
+        F = dict()  # dictionary used to contain the form factors
+        for element in elements:
+            F[ element] = find_form_factor(sf[element],E, mag)
+        """
+        #  Computes the dispersive and absorptive components
+        for element in elements:
+            f1 = f1 + sf[element][0] * rho[element]
+            f2 = f2 + sf[element][1] * rho[element]
+
+        delta = f1*constant  # dispersive component
+        beta = f2*constant  # absorptive component
 
     return delta, beta
 

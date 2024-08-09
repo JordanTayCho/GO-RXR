@@ -281,7 +281,7 @@ def readScript(sample, script):
 
             elif function.lower() == 'geteshift':
                 ffName = params[0].strip(' ')  # gets form factor names
-                variables[key] = float(sample.getEshift(ffName))  # retrieves form factor value
+                variables[key] = [float(x) for x in sample.getEshift(ffName)]  # retrieves form factor value
 
             elif function.lower() == 'getmageshift':
                 ffmName = params[0].strip(' ')  # gets magnetic form factor name
@@ -380,7 +380,7 @@ def readScript(sample, script):
                 key = params[1].strip(' ')  # gets value or key
 
                 if isfloat(key):  # value case
-                    sample.setEshift(ffName, float(key))
+                    sample.setEshift(ffName, [float(key[0]), float(key[1]), float(key[2])])
                 else:  # key case
                     sample.setEshift(ffName,variables[key])
 
